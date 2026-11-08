@@ -81,7 +81,7 @@ export async function printCard(S) {
   let img = "";
   try { img = await mapImage(S); } catch {}
   el.innerHTML = `<h1>Walkback EVA card · ${esc(S.site.name)}</h1>
-    <p><b>${V.verdict}</b> · ${p ? `${p.order.length} stops, ${(p.lengthM / 1000).toFixed(1)} km, ${(p.totalS / 3600).toFixed(2)} h` : "no feasible plan"} · start ${M.start_ltst} LTST · space weather ${M.space_weather.toUpperCase()} · shelter limit ${M.shelter_limit_min ?? "consumables only"} min · effort case ${M.effort_case}</p>
+    <p><b>${V.verdict}</b> · ${p ? `${p.order.length} stops, ${(p.lengthM / 1000).toFixed(1)} km, ${(p.totalS / 3600).toFixed(2)} h` : "no feasible plan"} · start ${M.start_ltst} LTST · space weather ${M.space_weather.toUpperCase()} · shelter limit ${M.shelter_limit_min == null ? "none beyond consumables" : M.shelter_limit_min + " min"} · effort case ${M.effort_case}</p>
     ${img ? `<img src="${img}" alt="Route map">` : ""}
     <h2>Timeline (local true solar time)</h2><table><tr><th>LTST</th><th>Activity</th><th>Duration</th></tr>${rows}</table>
     <h2>Checks</h2><ul>${V.checks.map((c) => `<li>${c.level.toUpperCase()}: ${esc(c.text)}</li>`).join("")}</ul>
