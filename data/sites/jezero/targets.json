@@ -1,0 +1,704 @@
+{
+ "objectives": [
+  {
+   "id": "A",
+   "name": "Delta sediments",
+   "goal": "Sample the western delta's layered fine-grained sediments, the rocks most likely to preserve organic matter and signs of ancient life."
+  },
+  {
+   "id": "B",
+   "name": "Margin carbonates",
+   "goal": "Reach the carbonate-bearing margin unit to study how the lake shoreline and water chemistry changed."
+  },
+  {
+   "id": "C",
+   "name": "Crater-floor igneous rocks",
+   "goal": "Examine the olivine-rich Seitah unit and the Maaz floor to date the crater floor and its alteration by water."
+  }
+ ],
+ "targets": [
+  {
+   "id": "wildcat",
+   "name": "Wildcat Ridge",
+   "lat": 18.458647,
+   "lon": 77.405925,
+   "objective": "A",
+   "priority": 10,
+   "station_min": 20,
+   "sample": "Hazeltop",
+   "sample_sol": 509,
+   "rock": "Wildcat Ridge",
+   "campaign": "Delta Front",
+   "rock_type": "Sedimentary",
+   "rationale": "Fine-grained mudstone/sandstone; strongest organic signal of the delta-front campaign. SHERLOC/PIXL proximity science, core.",
+   "position_source": "Perseverance waypoint 26_1222 (sol 502), last localization on or before the sealing sol; approximate (typically within tens of metres of the sampled rock).",
+   "approximate": true,
+   "pov": [
+    {
+     "file": "pov/wildcat_0.jpg",
+     "sol": 509,
+     "instrument": "MCZ_LEFT",
+     "camera": "MCZ_LEFT",
+     "imageid": "ZL0_0509_0712140450_775EBY_N0261222ZCAM05069_0340LMJ",
+     "date_taken_utc": "2022-07-26T20:55:08.483",
+     "credit": "NASA/JPL-Caltech/ASU",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00509/ids/edr/browse/zcam/ZL0_0509_0712140450_775EBY_N0261222ZCAM05069_0340LMJ01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/ZL0_0509_0712140450_775EBY_N0261222ZCAM05069_0340LMJ"
+    },
+    {
+     "file": "pov/wildcat_1.jpg",
+     "sol": 509,
+     "instrument": "NAVCAM_LEFT",
+     "camera": "NAVCAM_LEFT",
+     "imageid": "NLF_0509_0712140650_691ECM_N0261222NCAM00709_08_095J",
+     "date_taken_utc": "2022-07-26T20:58:19.033",
+     "credit": "NASA/JPL-Caltech",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00509/ids/edr/browse/ncam/NLF_0509_0712140650_691ECM_N0261222NCAM00709_08_095J01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/NLF_0509_0712140650_691ECM_N0261222NCAM00709_08_095J"
+    },
+    {
+     "file": "pov/wildcat_2.jpg",
+     "sol": 509,
+     "instrument": "FRONT_HAZCAM_LEFT_A",
+     "camera": "FRONT_HAZCAM_LEFT_A",
+     "imageid": "FLF_0509_0712138413_506ECM_N0261222FHAZ00203_13_195J",
+     "date_taken_utc": "2022-07-26T20:21:00.806",
+     "credit": "NASA/JPL-Caltech",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00509/ids/edr/browse/fcam/FLF_0509_0712138413_506ECM_N0261222FHAZ00203_13_195J01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/FLF_0509_0712138413_506ECM_N0261222FHAZ00203_13_195J"
+    }
+   ]
+  },
+  {
+   "id": "skinner",
+   "name": "Skinner Ridge",
+   "lat": 18.458895,
+   "lon": 77.406168,
+   "objective": "A",
+   "priority": 7,
+   "station_min": 20,
+   "sample": "Swift Run",
+   "sample_sol": 490,
+   "rock": "Skinner Ridge",
+   "campaign": "Delta Front",
+   "rock_type": "Sedimentary",
+   "rationale": "Delta-front sandstone; context for the delta stack.",
+   "position_source": "Perseverance waypoint 26_1004 (sol 477), last localization on or before the sealing sol; approximate (typically within tens of metres of the sampled rock).",
+   "approximate": true,
+   "pov": [
+    {
+     "file": "pov/skinner_0.jpg",
+     "sol": 490,
+     "instrument": "MCZ_LEFT",
+     "camera": "MCZ_LEFT",
+     "imageid": "ZL0_0490_0710456729_398EBY_N0261004ZCAM05069_0340LMJ",
+     "date_taken_utc": "2022-07-07T09:12:53.220",
+     "credit": "NASA/JPL-Caltech/ASU",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00490/ids/edr/browse/zcam/ZL0_0490_0710456729_398EBY_N0261004ZCAM05069_0340LMJ01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/ZL0_0490_0710456729_398EBY_N0261004ZCAM05069_0340LMJ"
+    },
+    {
+     "file": "pov/skinner_1.jpg",
+     "sol": 490,
+     "instrument": "NAVCAM_LEFT",
+     "camera": "NAVCAM_LEFT",
+     "imageid": "NLF_0490_0710456117_926ECM_N0261004NCAM00709_01_095J",
+     "date_taken_utc": "2022-07-07T09:02:42.128",
+     "credit": "NASA/JPL-Caltech",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00490/ids/edr/browse/ncam/NLF_0490_0710456117_926ECM_N0261004NCAM00709_01_095J02_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/NLF_0490_0710456117_926ECM_N0261004NCAM00709_01_095J"
+    },
+    {
+     "file": "pov/skinner_2.jpg",
+     "sol": 490,
+     "instrument": "FRONT_HAZCAM_LEFT_A",
+     "camera": "FRONT_HAZCAM_LEFT_A",
+     "imageid": "FLF_0490_0710454121_433ECM_N0261004FHAZ00203_16_195J",
+     "date_taken_utc": "2022-07-07T08:29:18.998",
+     "credit": "NASA/JPL-Caltech",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00490/ids/edr/browse/fcam/FLF_0490_0710454121_433ECM_N0261004FHAZ00203_16_195J01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/FLF_0490_0710454121_433ECM_N0261004FHAZ00203_16_195J"
+    }
+   ]
+  },
+  {
+   "id": "amalik",
+   "name": "Amalik outcrop",
+   "lat": 18.450726,
+   "lon": 77.40144,
+   "objective": "A",
+   "priority": 8,
+   "station_min": 20,
+   "sample": "Shuyak",
+   "sample_sol": 575,
+   "rock": "Amalik",
+   "campaign": "Delta Front",
+   "rock_type": "Sedimentary",
+   "rationale": "Layered sedimentary outcrop at the delta front.",
+   "position_source": "Perseverance waypoint 29_0 (sol 565), last localization on or before the sealing sol; approximate (typically within tens of metres of the sampled rock).",
+   "approximate": true,
+   "pov": [
+    {
+     "file": "pov/amalik_0.jpg",
+     "sol": 575,
+     "instrument": "MCZ_LEFT",
+     "camera": "MCZ_LEFT",
+     "imageid": "ZL0_0575_0717998001_810EBY_N0290000ZCAM05069_0340LMJ",
+     "date_taken_utc": "2022-10-02T16:01:43.661",
+     "credit": "NASA/JPL-Caltech/ASU",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00575/ids/edr/browse/zcam/ZL0_0575_0717998001_810EBY_N0290000ZCAM05069_0340LMJ02_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/ZL0_0575_0717998001_810EBY_N0290000ZCAM05069_0340LMJ"
+    },
+    {
+     "file": "pov/amalik_1.jpg",
+     "sol": 575,
+     "instrument": "NAVCAM_LEFT",
+     "camera": "NAVCAM_LEFT",
+     "imageid": "NLF_0575_0717997335_774ECM_N0290000NCAM00709_01_095J",
+     "date_taken_utc": "2022-10-02T15:50:31.205",
+     "credit": "NASA/JPL-Caltech",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00575/ids/edr/browse/ncam/NLF_0575_0717997335_774ECM_N0290000NCAM00709_01_095J01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/NLF_0575_0717997335_774ECM_N0290000NCAM00709_01_095J"
+    },
+    {
+     "file": "pov/amalik_2.jpg",
+     "sol": 575,
+     "instrument": "FRONT_HAZCAM_LEFT_A",
+     "camera": "FRONT_HAZCAM_LEFT_A",
+     "imageid": "FLF_0575_0717995408_113ECM_N0290000FHAZ00215_04_075J",
+     "date_taken_utc": "2022-10-02T15:18:22.147",
+     "credit": "NASA/JPL-Caltech",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00575/ids/edr/browse/fcam/FLF_0575_0717995408_113ECM_N0290000FHAZ00215_04_075J01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/FLF_0575_0717995408_113ECM_N0290000FHAZ00215_04_075J"
+    }
+   ]
+  },
+  {
+   "id": "hidden_harbor",
+   "name": "Hidden Harbor",
+   "lat": 18.451625,
+   "lon": 77.401437,
+   "objective": "A",
+   "priority": 6,
+   "station_min": 20,
+   "sample": "Kukaklek",
+   "sample_sol": 631,
+   "rock": "Hidden Harbor",
+   "campaign": "Delta Front",
+   "rock_type": "Sedimentary",
+   "rationale": "Delta-front mudstone; complements Wildcat Ridge.",
+   "position_source": "Perseverance waypoint 30_2188 (sol 629), last localization on or before the sealing sol; approximate (typically within tens of metres of the sampled rock).",
+   "approximate": true,
+   "pov": [
+    {
+     "file": "pov/hidden_harbor_0.jpg",
+     "sol": 629,
+     "instrument": "MCZ_LEFT",
+     "camera": "MCZ_LEFT",
+     "imageid": "ZL0_0629_0722783040_193EBY_N0301344ZCAM08627_0630LMJ",
+     "date_taken_utc": "2022-11-27T01:14:32.375",
+     "credit": "NASA/JPL-Caltech/ASU",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00629/ids/edr/browse/zcam/ZL0_0629_0722783040_193EBY_N0301344ZCAM08627_0630LMJ01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/ZL0_0629_0722783040_193EBY_N0301344ZCAM08627_0630LMJ"
+    },
+    {
+     "file": "pov/hidden_harbor_1.jpg",
+     "sol": 629,
+     "instrument": "NAVCAM_LEFT",
+     "camera": "NAVCAM_LEFT",
+     "imageid": "NLMV0629_0722790172_888ECM_N0302149TRAV00229_00_2LLJ",
+     "date_taken_utc": "2022-11-27T03:11:44.853",
+     "credit": "NASA/JPL-Caltech",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00629/ids/edr/browse/ncam/NLMV0629_0722790172_888ECM_N0302149TRAV00229_00_2LLJ04_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/NLMV0629_0722790172_888ECM_N0302149TRAV00229_00_2LLJ"
+    },
+    {
+     "file": "pov/hidden_harbor_2.jpg",
+     "sol": 629,
+     "instrument": "FRONT_HAZCAM_LEFT_A",
+     "camera": "FRONT_HAZCAM_LEFT_A",
+     "imageid": "FLF_0629_0722797264_440ECM_N0302188FHAZ02418_01_295J",
+     "date_taken_utc": "2022-11-27T05:10:00.838",
+     "credit": "NASA/JPL-Caltech",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00629/ids/edr/browse/fcam/FLF_0629_0722797264_440ECM_N0302188FHAZ02418_01_295J01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/FLF_0629_0722797264_440ECM_N0302188FHAZ02418_01_295J"
+    }
+   ]
+  },
+  {
+   "id": "melyn",
+   "name": "Berea (upper fan)",
+   "lat": 18.470212,
+   "lon": 77.383988,
+   "objective": "A",
+   "priority": 6,
+   "station_min": 20,
+   "sample": "Melyn",
+   "sample_sol": 749,
+   "rock": "Berea",
+   "campaign": "Upper Fan",
+   "rock_type": "Sedimentary",
+   "rationale": "Upper-fan conglomerate/sandstone: what the river carried into the lake.",
+   "position_source": "Perseverance waypoint 37_0 (sol 736), last localization on or before the sealing sol; approximate (typically within tens of metres of the sampled rock).",
+   "approximate": true,
+   "pov": [
+    {
+     "file": "pov/melyn_0.jpg",
+     "sol": 749,
+     "instrument": "MCZ_LEFT",
+     "camera": "MCZ_LEFT",
+     "imageid": "ZL0_0749_0733450395_307EBY_N0370000ZCAM05069_0340LMJ",
+     "date_taken_utc": "2023-03-30T12:23:39.479",
+     "credit": "NASA/JPL-Caltech/ASU",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00749/ids/edr/browse/zcam/ZL0_0749_0733450395_307EBY_N0370000ZCAM05069_0340LMJ01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/ZL0_0749_0733450395_307EBY_N0370000ZCAM05069_0340LMJ"
+    },
+    {
+     "file": "pov/melyn_1.jpg",
+     "sol": 749,
+     "instrument": "NAVCAM_LEFT",
+     "camera": "NAVCAM_LEFT",
+     "imageid": "NLF_0749_0733449728_990ECM_N0370000NCAM00709_09_095J",
+     "date_taken_utc": "2023-03-30T12:12:26.022",
+     "credit": "NASA/JPL-Caltech",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00749/ids/edr/browse/ncam/NLF_0749_0733449728_990ECM_N0370000NCAM00709_09_095J01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/NLF_0749_0733449728_990ECM_N0370000NCAM00709_09_095J"
+    },
+    {
+     "file": "pov/melyn_2.jpg",
+     "sol": 749,
+     "instrument": "FRONT_HAZCAM_LEFT_A",
+     "camera": "FRONT_HAZCAM_LEFT_A",
+     "imageid": "FLF_0749_0733445725_069ECM_N0370000FHAZ00203_07_195J",
+     "date_taken_utc": "2023-03-30T11:05:41.216",
+     "credit": "NASA/JPL-Caltech",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00749/ids/edr/browse/fcam/FLF_0749_0733445725_069ECM_N0370000FHAZ00203_07_195J01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/FLF_0749_0733445725_069ECM_N0370000FHAZ00203_07_195J"
+    }
+   ]
+  },
+  {
+   "id": "pelican",
+   "name": "Hans Amundsen Memorial Workspace",
+   "lat": 18.483443,
+   "lon": 77.350694,
+   "objective": "B",
+   "priority": 7,
+   "station_min": 20,
+   "sample": "Pelican Point",
+   "sample_sol": 923,
+   "rock": "Hans Amundsen Memorial Workspace",
+   "campaign": "Margin Unit",
+   "rock_type": "Sedimentary",
+   "rationale": "Margin-unit carbonate-bearing rock near the old shoreline.",
+   "position_source": "Perseverance waypoint 45_0 (sol 911), last localization on or before the sealing sol; approximate (typically within tens of metres of the sampled rock).",
+   "approximate": true,
+   "pov": [
+    {
+     "file": "pov/pelican_0.jpg",
+     "sol": 923,
+     "instrument": "MCZ_LEFT",
+     "camera": "MCZ_LEFT",
+     "imageid": "ZL7_0923_0748881169_269ECM_N0450000ZCAM01058_1100LMJ",
+     "date_taken_utc": "2023-09-25T02:45:28.109",
+     "credit": "NASA/JPL-Caltech/ASU",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00923/ids/edr/browse/zcam/ZL7_0923_0748881169_269ECM_N0450000ZCAM01058_1100LMJ01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/ZL7_0923_0748881169_269ECM_N0450000ZCAM01058_1100LMJ"
+    },
+    {
+     "file": "pov/pelican_1.jpg",
+     "sol": 923,
+     "instrument": "NAVCAM_LEFT",
+     "camera": "NAVCAM_LEFT",
+     "imageid": "NLF_0923_0748891047_145ECM_N0450000NCAM00709_02_095J",
+     "date_taken_utc": "2023-09-25T05:29:45.124",
+     "credit": "NASA/JPL-Caltech",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00923/ids/edr/browse/ncam/NLF_0923_0748891047_145ECM_N0450000NCAM00709_02_095J01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/NLF_0923_0748891047_145ECM_N0450000NCAM00709_02_095J"
+    },
+    {
+     "file": "pov/pelican_2.jpg",
+     "sol": 923,
+     "instrument": "FRONT_HAZCAM_LEFT_A",
+     "camera": "FRONT_HAZCAM_LEFT_A",
+     "imageid": "FLF_0923_0748887861_989ECM_N0450000FHAZ00215_01_275J",
+     "date_taken_utc": "2023-09-25T04:36:40.204",
+     "credit": "NASA/JPL-Caltech",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00923/ids/edr/browse/fcam/FLF_0923_0748887861_989ECM_N0450000FHAZ00215_01_275J01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/FLF_0923_0748887861_989ECM_N0450000FHAZ00215_01_275J"
+    }
+   ]
+  },
+  {
+   "id": "lefroy",
+   "name": "Turquoise Bay",
+   "lat": 18.488715,
+   "lon": 77.347043,
+   "objective": "B",
+   "priority": 8,
+   "station_min": 20,
+   "sample": "Lefroy Bay",
+   "sample_sol": 949,
+   "rock": "Turquoise Bay",
+   "campaign": "Margin Unit",
+   "rock_type": "Sedimentary",
+   "rationale": "Margin-unit sedimentary rock near the old shoreline.",
+   "position_source": "Perseverance waypoint 46_0 (sol 933), last localization on or before the sealing sol; approximate (typically within tens of metres of the sampled rock).",
+   "approximate": true,
+   "pov": [
+    {
+     "file": "pov/lefroy_0.jpg",
+     "sol": 949,
+     "instrument": "MCZ_LEFT",
+     "camera": "MCZ_LEFT",
+     "imageid": "ZL6_0949_0751179769_263ECM_N0460000ZCAM01058_034080J",
+     "date_taken_utc": "2023-10-21T17:15:45.231",
+     "credit": "NASA/JPL-Caltech/ASU",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00949/ids/edr/browse/zcam/ZL6_0949_0751179769_263ECM_N0460000ZCAM01058_034080J01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/ZL6_0949_0751179769_263ECM_N0460000ZCAM01058_034080J"
+    },
+    {
+     "file": "pov/lefroy_1.jpg",
+     "sol": 949,
+     "instrument": "NAVCAM_LEFT",
+     "camera": "NAVCAM_LEFT",
+     "imageid": "NLB_0949_0751179979_490ECM_N0460000NCAM00502_03_1I6J",
+     "date_taken_utc": "2023-10-21T17:18:54.975",
+     "credit": "NASA/JPL-Caltech",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00949/ids/edr/browse/ncam/NLB_0949_0751179979_490ECM_N0460000NCAM00502_03_1I6J01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/NLB_0949_0751179979_490ECM_N0460000NCAM00502_03_1I6J"
+    },
+    {
+     "file": "pov/lefroy_2.jpg",
+     "sol": 949,
+     "instrument": "MCZ_RIGHT",
+     "camera": "MCZ_RIGHT",
+     "imageid": "ZR2_0949_0751179769_263ECM_N0460000ZCAM01058_034080J",
+     "date_taken_utc": "2023-10-21T17:15:45.237",
+     "credit": "NASA/JPL-Caltech/ASU",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00949/ids/edr/browse/zcam/ZR2_0949_0751179769_263ECM_N0460000ZCAM01058_034080J01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/ZR2_0949_0751179769_263ECM_N0460000ZCAM01058_034080J"
+    }
+   ]
+  },
+  {
+   "id": "bunsen",
+   "name": "Bunsen Peak",
+   "lat": 18.491833,
+   "lon": 77.327203,
+   "objective": "B",
+   "priority": 9,
+   "station_min": 20,
+   "sample": "Comet Geyser",
+   "sample_sol": 1088,
+   "rock": "Bunsen Peak",
+   "campaign": "Margin Unit",
+   "rock_type": "Silica-cemented carbonate",
+   "rationale": "Silica-cemented carbonate: high biosignature-preservation potential.",
+   "position_source": "Perseverance waypoint 51_0 (sol 1084), last localization on or before the sealing sol; approximate (typically within tens of metres of the sampled rock).",
+   "approximate": true,
+   "pov": [
+    {
+     "file": "pov/bunsen_0.jpg",
+     "sol": 1088,
+     "instrument": "MCZ_LEFT",
+     "camera": "MCZ_LEFT",
+     "imageid": "ZL0_1088_0763540033_727EBY_N0510000ZCAM05070_0340LMJ",
+     "date_taken_utc": "2024-03-12T18:41:50.069",
+     "credit": "NASA/JPL-Caltech/ASU",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/01088/ids/edr/browse/zcam/ZL0_1088_0763540033_727EBY_N0510000ZCAM05070_0340LMJ01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/ZL0_1088_0763540033_727EBY_N0510000ZCAM05070_0340LMJ"
+    },
+    {
+     "file": "pov/bunsen_1.jpg",
+     "sol": 1088,
+     "instrument": "NAVCAM_LEFT",
+     "camera": "NAVCAM_LEFT",
+     "imageid": "NLG_1088_0763522029_492ECM_N0510000NCAM00500_00_2I4J",
+     "date_taken_utc": "2024-03-12T13:41:25.205",
+     "credit": "NASA/JPL-Caltech",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/01088/ids/edr/browse/ncam/NLG_1088_0763522029_492ECM_N0510000NCAM00500_00_2I4J01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/NLG_1088_0763522029_492ECM_N0510000NCAM00500_00_2I4J"
+    },
+    {
+     "file": "pov/bunsen_2.jpg",
+     "sol": 1088,
+     "instrument": "FRONT_HAZCAM_LEFT_A",
+     "camera": "FRONT_HAZCAM_LEFT_A",
+     "imageid": "FLF_1088_0763535816_817ECM_N0510000FHAZ00215_01_275J",
+     "date_taken_utc": "2024-03-12T17:31:14.596",
+     "credit": "NASA/JPL-Caltech",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/01088/ids/edr/browse/fcam/FLF_1088_0763535816_817ECM_N0510000FHAZ00215_01_275J01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/FLF_1088_0763535816_817ECM_N0510000FHAZ00215_01_275J"
+    }
+   ]
+  },
+  {
+   "id": "cheyava",
+   "name": "Cheyava Falls",
+   "lat": 18.497484,
+   "lon": 77.305191,
+   "objective": "B",
+   "priority": 10,
+   "station_min": 20,
+   "sample": "Sapphire Canyon",
+   "sample_sol": 1215,
+   "rock": "Cheyava Falls",
+   "campaign": "Neretva Vallis",
+   "rock_type": "Sedimentary",
+   "rationale": "Mudstone with 'leopard spots', a potential biosignature reported by NASA (2025).",
+   "position_source": "Perseverance waypoint 56_0 (sol 1210), last localization on or before the sealing sol; approximate (typically within tens of metres of the sampled rock).",
+   "approximate": true,
+   "pov": [
+    {
+     "file": "pov/cheyava_0.jpg",
+     "sol": 1215,
+     "instrument": "MCZ_LEFT",
+     "camera": "MCZ_LEFT",
+     "imageid": "ZL7_1215_0774798536_863EBY_N0560000ZCAM01064_1100LMJ",
+     "date_taken_utc": "2024-07-21T02:05:02.579",
+     "credit": "NASA/JPL-Caltech/ASU",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/01215/ids/edr/browse/zcam/ZL7_1215_0774798536_863EBY_N0560000ZCAM01064_1100LMJ01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/ZL7_1215_0774798536_863EBY_N0560000ZCAM01064_1100LMJ"
+    },
+    {
+     "file": "pov/cheyava_1.jpg",
+     "sol": 1215,
+     "instrument": "NAVCAM_LEFT",
+     "camera": "NAVCAM_LEFT",
+     "imageid": "NLG_1215_0774798804_068ECM_N0560000NCAM00500_00_2I4J",
+     "date_taken_utc": "2024-07-21T02:09:09.791",
+     "credit": "NASA/JPL-Caltech",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/01215/ids/edr/browse/ncam/NLG_1215_0774798804_068ECM_N0560000NCAM00500_00_2I4J01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/NLG_1215_0774798804_068ECM_N0560000NCAM00500_00_2I4J"
+    },
+    {
+     "file": "pov/cheyava_2.jpg",
+     "sol": 1215,
+     "instrument": "FRONT_HAZCAM_LEFT_A",
+     "camera": "FRONT_HAZCAM_LEFT_A",
+     "imageid": "FLF_1215_0774812639_097ECM_N0560000FHAZ00215_01_275J",
+     "date_taken_utc": "2024-07-21T05:59:45.764",
+     "credit": "NASA/JPL-Caltech",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/01215/ids/edr/browse/fcam/FLF_1215_0774812639_097ECM_N0560000FHAZ00215_01_275J01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/FLF_1215_0774812639_097ECM_N0560000FHAZ00215_01_275J"
+    }
+   ]
+  },
+  {
+   "id": "seitah_brac",
+   "name": "South Seitah (Brac)",
+   "lat": 18.433964,
+   "lon": 77.443019,
+   "objective": "C",
+   "priority": 7,
+   "station_min": 20,
+   "sample": "Salette",
+   "sample_sol": 262,
+   "rock": "Brac",
+   "campaign": "South Seitah",
+   "rock_type": "Igneous",
+   "rationale": "Olivine-rich cumulate igneous rock altered by water.",
+   "position_source": "Perseverance waypoint 8_0 (sol 248), last localization on or before the sealing sol; approximate (typically within tens of metres of the sampled rock).",
+   "approximate": true,
+   "pov": [
+    {
+     "file": "pov/seitah_brac_0.jpg",
+     "sol": 262,
+     "instrument": "MCZ_LEFT",
+     "camera": "MCZ_LEFT",
+     "imageid": "ZL0_0262_0690212660_307EBY_N0080000ZCAM05069_0340LMJ",
+     "date_taken_utc": "2021-11-15T01:50:31.627",
+     "credit": "NASA/JPL-Caltech/ASU",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00262/ids/edr/browse/zcam/ZL0_0262_0690212660_307EBY_N0080000ZCAM05069_0340LMJ01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/ZL0_0262_0690212660_307EBY_N0080000ZCAM05069_0340LMJ"
+    },
+    {
+     "file": "pov/seitah_brac_1.jpg",
+     "sol": 262,
+     "instrument": "NAVCAM_LEFT",
+     "camera": "NAVCAM_LEFT",
+     "imageid": "NLE_0262_0690212241_488ECM_N0080000NCAM00705_01_0LLJ",
+     "date_taken_utc": "2021-11-15T01:41:55.698",
+     "credit": "NASA/JPL-Caltech",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00262/ids/edr/browse/ncam/NLE_0262_0690212241_488ECM_N0080000NCAM00705_01_0LLJ01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/NLE_0262_0690212241_488ECM_N0080000NCAM00705_01_0LLJ"
+    },
+    {
+     "file": "pov/seitah_brac_2.jpg",
+     "sol": 262,
+     "instrument": "FRONT_HAZCAM_LEFT_A",
+     "camera": "FRONT_HAZCAM_LEFT_A",
+     "imageid": "FLF_0262_0690208650_647ECM_N0080000FHAZ00206_01_295J",
+     "date_taken_utc": "2021-11-15T00:42:05.638",
+     "credit": "NASA/JPL-Caltech",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00262/ids/edr/browse/fcam/FLF_0262_0690208650_647ECM_N0080000FHAZ00206_01_295J01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/FLF_0262_0690208650_647ECM_N0080000FHAZ00206_01_295J"
+    }
+   ]
+  },
+  {
+   "id": "seitah_issole",
+   "name": "South Seitah (Issole)",
+   "lat": 18.432661,
+   "lon": 77.441373,
+   "objective": "C",
+   "priority": 6,
+   "station_min": 20,
+   "sample": "Robine",
+   "sample_sol": 298,
+   "rock": "Issole",
+   "campaign": "South Seitah",
+   "rock_type": "Igneous",
+   "rationale": "Olivine-rich igneous rock, second Seitah site.",
+   "position_source": "Perseverance waypoint 9_0 (sol 286), last localization on or before the sealing sol; approximate (typically within tens of metres of the sampled rock).",
+   "approximate": true,
+   "pov": [
+    {
+     "file": "pov/seitah_issole_0.jpg",
+     "sol": 298,
+     "instrument": "MCZ_LEFT",
+     "camera": "MCZ_LEFT",
+     "imageid": "ZL6_0298_0693398435_239ECM_N0090000ZCAM01005_0260LMJ",
+     "date_taken_utc": "2021-12-21T22:45:57.746",
+     "credit": "NASA/JPL-Caltech/ASU",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00298/ids/edr/browse/zcam/ZL6_0298_0693398435_239ECM_N0090000ZCAM01005_0260LMJ02_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/ZL6_0298_0693398435_239ECM_N0090000ZCAM01005_0260LMJ"
+    },
+    {
+     "file": "pov/seitah_issole_1.jpg",
+     "sol": 298,
+     "instrument": "NAVCAM_LEFT",
+     "camera": "NAVCAM_LEFT",
+     "imageid": "NLG_0298_0693398568_242ECM_N0090000NCAM00529_00_2I4J",
+     "date_taken_utc": "2021-12-21T22:47:47.668",
+     "credit": "NASA/JPL-Caltech",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00298/ids/edr/browse/ncam/NLG_0298_0693398568_242ECM_N0090000NCAM00529_00_2I4J02_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/NLG_0298_0693398568_242ECM_N0090000NCAM00529_00_2I4J"
+    },
+    {
+     "file": "pov/seitah_issole_2.jpg",
+     "sol": 298,
+     "instrument": "MCZ_RIGHT",
+     "camera": "MCZ_RIGHT",
+     "imageid": "ZR2_0298_0693398405_223EBY_N0090000ZCAM01005_0260LMJ",
+     "date_taken_utc": "2021-12-21T22:45:32.748",
+     "credit": "NASA/JPL-Caltech/ASU",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00298/ids/edr/browse/zcam/ZR2_0298_0693398405_223EBY_N0090000ZCAM01005_0260LMJ03_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/ZR2_0298_0693398405_223EBY_N0090000ZCAM01005_0260LMJ"
+    }
+   ]
+  },
+  {
+   "id": "rochette",
+   "name": "Rochette (Artuby Ridge)",
+   "lat": 18.430739,
+   "lon": 77.444366,
+   "objective": "C",
+   "priority": 5,
+   "station_min": 20,
+   "sample": "Montdenier",
+   "sample_sol": 194,
+   "rock": "Rochette",
+   "campaign": "Artuby Ridge",
+   "rock_type": "Igneous",
+   "rationale": "Maaz crater-floor igneous rock; Montdenier was the first rock core sealed on Mars.",
+   "position_source": "Perseverance waypoint 7_0 (sol 180), last localization on or before the sealing sol; approximate (typically within tens of metres of the sampled rock).",
+   "approximate": true,
+   "pov": [
+    {
+     "file": "pov/rochette_0.jpg",
+     "sol": 194,
+     "instrument": "MCZ_LEFT",
+     "camera": "MCZ_LEFT",
+     "imageid": "ZL0_0194_0684157825_019EBY_N0070000ZCAM03218_1100LMJ",
+     "date_taken_utc": "2021-09-05T23:54:26.899",
+     "credit": "NASA/JPL-Caltech/ASU",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00194/ids/edr/browse/zcam/ZL0_0194_0684157825_019EBY_N0070000ZCAM03218_1100LMJ01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/ZL0_0194_0684157825_019EBY_N0070000ZCAM03218_1100LMJ"
+    },
+    {
+     "file": "pov/rochette_1.jpg",
+     "sol": 194,
+     "instrument": "MCZ_RIGHT",
+     "camera": "MCZ_RIGHT",
+     "imageid": "ZR0_0194_0684157883_988EBY_N0070000ZCAM03218_1100LMJ",
+     "date_taken_utc": "2021-09-05T23:55:36.897",
+     "credit": "NASA/JPL-Caltech/ASU",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00194/ids/edr/browse/zcam/ZR0_0194_0684157883_988EBY_N0070000ZCAM03218_1100LMJ01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/ZR0_0194_0684157883_988EBY_N0070000ZCAM03218_1100LMJ"
+    },
+    {
+     "file": "pov/rochette_2.jpg",
+     "sol": 194,
+     "instrument": "NAVCAM_RIGHT",
+     "camera": "NAVCAM_RIGHT",
+     "imageid": "NRF_0194_0684158490_131ECM_N0070000NCAM01194_01_195J",
+     "date_taken_utc": "2021-09-06T00:05:16.375",
+     "credit": "NASA/JPL-Caltech",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00194/ids/edr/browse/ncam/NRF_0194_0684158490_131ECM_N0070000NCAM01194_01_195J01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/NRF_0194_0684158490_131ECM_N0070000NCAM01194_01_195J"
+    }
+   ]
+  },
+  {
+   "id": "sid",
+   "name": "Sid (Ch'al outcrop)",
+   "lat": 18.443902,
+   "lon": 77.452434,
+   "objective": "C",
+   "priority": 4,
+   "station_min": 20,
+   "sample": "Ha'ahoni",
+   "sample_sol": 371,
+   "rock": "Sid",
+   "campaign": "Octavia E. Butler landing / Ch'al",
+   "rock_type": "Igneous",
+   "rationale": "Maaz floor rock close to the landing site.",
+   "position_source": "Perseverance waypoint 11_108 (sol 362), last localization on or before the sealing sol; approximate (typically within tens of metres of the sampled rock).",
+   "approximate": true,
+   "pov": [
+    {
+     "file": "pov/sid_0.jpg",
+     "sol": 371,
+     "instrument": "MCZ_LEFT",
+     "camera": "MCZ_LEFT",
+     "imageid": "ZL0_0371_0699866502_098EBY_N0110108ZCAM08402_1100LMJ",
+     "date_taken_utc": "2022-03-06T19:27:35.733",
+     "credit": "NASA/JPL-Caltech/ASU",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00371/ids/edr/browse/zcam/ZL0_0371_0699866502_098EBY_N0110108ZCAM08402_1100LMJ01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/ZL0_0371_0699866502_098EBY_N0110108ZCAM08402_1100LMJ"
+    },
+    {
+     "file": "pov/sid_1.jpg",
+     "sol": 371,
+     "instrument": "NAVCAM_LEFT",
+     "camera": "NAVCAM_LEFT",
+     "imageid": "NLE_0371_0699886394_034ECM_N0110108NCAM00709_05_0LLJ",
+     "date_taken_utc": "2022-03-07T00:59:05.223",
+     "credit": "NASA/JPL-Caltech",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00371/ids/edr/browse/ncam/NLE_0371_0699886394_034ECM_N0110108NCAM00709_05_0LLJ01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/NLE_0371_0699886394_034ECM_N0110108NCAM00709_05_0LLJ"
+    },
+    {
+     "file": "pov/sid_2.jpg",
+     "sol": 371,
+     "instrument": "FRONT_HAZCAM_LEFT_A",
+     "camera": "FRONT_HAZCAM_LEFT_A",
+     "imageid": "FLF_0371_0699884763_300ECM_N0110108FHAZ00203_16_195J",
+     "date_taken_utc": "2022-03-07T00:31:54.174",
+     "credit": "NASA/JPL-Caltech",
+     "source_url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/00371/ids/edr/browse/fcam/FLF_0371_0699884763_300ECM_N0110108FHAZ00203_16_195J01_800.jpg",
+     "page": "https://mars.nasa.gov/mars2020/multimedia/raw-images/FLF_0371_0699884763_300ECM_N0110108FHAZ00203_16_195J"
+    }
+   ]
+  }
+ ],
+ "sources": {
+  "samples": "NASA Mars Rock Samples page, science.nasa.gov/mission/mars-2020-perseverance/mars-rock-samples/ (accessed 2026-11-09)",
+  "positions": "NASA/JPL-Caltech MMGIS M20_waypoints.json",
+  "images": "Mars 2020 raw images, NASA/JPL-Caltech (Mastcam-Z: NASA/JPL-Caltech/ASU). Raw, uncalibrated."
+ },
+ "priority_note": "Priority scores are Walkback demo values (an assumption). A real science team would set them.",
+ "station_note": "Default 20 min on station per stop (assumption; editable)."
+}

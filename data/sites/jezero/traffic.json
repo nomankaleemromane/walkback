@@ -1,0 +1,187 @@
+{
+ "bed_units": [
+  {
+   "id": 1,
+   "name": "Crater floor fractured 1",
+   "hazard": 0.15,
+   "kind": "smooth",
+   "source_desc": "Massive, light-toned fractured and blocky bedrock; dark sand fills crevices and fractures",
+   "cells": 15825
+  },
+  {
+   "id": 2,
+   "name": "Crater floor fractured 2",
+   "hazard": 0.35,
+   "kind": "rock",
+   "source_desc": "Rougher, pock-marked surface texture from small m-scale bumps and ridges",
+   "cells": 13642
+  },
+  {
+   "id": 3,
+   "name": "Crater floor fractured rough",
+   "hazard": 0.4,
+   "kind": "rock",
+   "source_desc": "Rough on the meter-scale, boulder-producing; local relief of only a few meters",
+   "cells": 57020
+  },
+  {
+   "id": 4,
+   "name": "Margin fractured",
+   "hazard": 0.35,
+   "kind": "rock",
+   "source_desc": "m-scale surface roughness; erosionally resistant blocks 1-5 m in diameter",
+   "cells": 20482
+  },
+  {
+   "id": 5,
+   "name": "Delta blocky",
+   "hazard": 0.7,
+   "kind": "rock",
+   "source_desc": "Steep-sided boulder-shedding mesas, mounds and terraces; blocks of variable size",
+   "cells": 12545
+  },
+  {
+   "id": 6,
+   "name": "Delta truncated curvilinear layered",
+   "hazard": 0.2,
+   "kind": "smooth",
+   "source_desc": "Decimeter-scale alternating light/dark strata",
+   "cells": 2975
+  },
+  {
+   "id": 7,
+   "name": "Delta thinly layered",
+   "hazard": 0.25,
+   "kind": "smooth",
+   "source_desc": "Stair-stepped light-toned ledges, layers <1 m, dark sand or mantling between",
+   "cells": 1565
+  },
+  {
+   "id": 8,
+   "name": "Delta thickly layered",
+   "hazard": 0.45,
+   "kind": "rock",
+   "source_desc": "Rough-textured, erosionally resistant layers up to several meters thick",
+   "cells": 632
+  },
+  {
+   "id": 9,
+   "name": "Delta layered rough",
+   "hazard": 0.45,
+   "kind": "rock",
+   "source_desc": "m-thick layers with a rough surface texture",
+   "cells": 2002
+  },
+  {
+   "id": 10,
+   "name": "Crater rim blocky",
+   "hazard": 0.75,
+   "kind": "rock",
+   "source_desc": "High-standing ridges that erode to boulders; m-scale rubbly texture",
+   "cells": 13874
+  },
+  {
+   "id": 11,
+   "name": "Crater rim layered",
+   "hazard": 0.35,
+   "kind": "rock",
+   "source_desc": "m to sub-m layers; fracture-bounded polygons meters to tens of meters across",
+   "cells": 2385
+  },
+  {
+   "id": 12,
+   "name": "Crater rim breccia",
+   "hazard": 0.85,
+   "kind": "rock",
+   "source_desc": "Brecciated, disrupted bedrock; blocks 10 to >100 m in diameter",
+   "cells": 315
+  },
+  {
+   "id": 13,
+   "name": "Crater rim rough",
+   "hazard": 0.45,
+   "kind": "rock",
+   "source_desc": "m-scale rough texture; dark sand infilling small pits",
+   "cells": 340
+  },
+  {
+   "id": 14,
+   "name": "Nili Planum fractured",
+   "hazard": 0.3,
+   "kind": "rock",
+   "source_desc": "Low-relief to blocky, ridged expression",
+   "cells": 6979
+  },
+  {
+   "id": 15,
+   "name": "Neretva Vallis layered",
+   "hazard": 0.3,
+   "kind": "rock",
+   "source_desc": "Layered outcrops with m-scale fracture-bounded polygons",
+   "cells": 5268
+  }
+ ],
+ "surf_units": [
+  {
+   "id": 1,
+   "name": "Aeolian bedforms, large",
+   "hazard": 0.6,
+   "kind": "soft",
+   "source_desc": "Straight-crested bedforms (megaripples); loose sand in troughs",
+   "cells": 44583
+  },
+  {
+   "id": 2,
+   "name": "Aeolian bedforms, small",
+   "hazard": 0.4,
+   "kind": "soft",
+   "source_desc": "Recently active aeolian ripples; reticulate and polygonal patterns",
+   "cells": 2211
+  },
+  {
+   "id": 3,
+   "name": "Undifferentiated smooth",
+   "hazard": 0.1,
+   "kind": "smooth",
+   "source_desc": "Smooth unconsolidated mantling deposits of dust, sand, pebbles, cobbles",
+   "cells": 31081
+  },
+  {
+   "id": 4,
+   "name": "Talus",
+   "hazard": 0.9,
+   "kind": "rock",
+   "source_desc": "Accumulations of m-scale boulders on slopes and below eroded outcrops",
+   "cells": 3192
+  },
+  {
+   "id": 5,
+   "name": "Moderate Cover Us",
+   "hazard": 0.1,
+   "kind": "smooth",
+   "source_desc": "Unconsolidated cover over ~25-75% of bedrock",
+   "cells": 5836
+  },
+  {
+   "id": 6,
+   "name": "Minor Cover Us",
+   "hazard": 0.0,
+   "kind": "smooth",
+   "source_desc": "Unconsolidated cover over >0 to ~25% of bedrock (bedrock dominates)",
+   "cells": 15250
+  }
+ ],
+ "geology_coverage_pct": 25.8,
+ "ti_percentiles": {
+  "5": 169.74606704711914,
+  "25": 204.133056640625,
+  "50": 234.19088745117188,
+  "75": 266.8915557861328,
+  "95": 315.1731262207031
+ },
+ "sources": {
+  "geology": "Stack, K.M. et al. (2020) Photogeologic Map of the Perseverance Rover Field Site in Jezero Crater Constructed by the Mars 2020 Science Team. Space Sci. Rev. 216:127. doi:10.1007/s11214-020-00739-x (CC BY 4.0). Mapped at 1:5,000 on a 25 cm HiRISE basemap.",
+  "ti": "Edwards, C.S. & Buz, J. (2021) THEMIS-derived Thermal Inertia of Jezero Crater, Mars. Zenodo doi:10.5281/zenodo.4931348 (CC BY 4.0). 100 m/px; overlapping images offset by up to ~20 TI units."
+ },
+ "method": "Bedrock unit = dominant unit in each grid cell (rasterized at 4x). Surface cover = most hazardous cover occupying >= 25% of the cell. Unit hazard scores are Walkback assumptions based on the quoted unit descriptions, not values from the source."
+}

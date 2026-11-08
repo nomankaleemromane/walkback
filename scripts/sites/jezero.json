@@ -1,0 +1,18 @@
+{
+ "id": "jezero",
+ "name": "Jezero crater (Perseverance field site)",
+ "dem_url": "https://planetarymaps.usgs.gov/mosaic/mars2020_trn/CTX/JEZ_ctx_B_soc_008_DTM_MOLAtopography_DeltaGeoid_20m_Eqc_latTs0_lon0.tif",
+ "dem_credit": "Fergason, R.L. et al. (2020) Context Camera Digital Terrain Model Mosaic for Mars 2020 Terrain Relative Navigation, USGS Astrogeology, doi:10.5066/P906QQT8 (20 m; MRO CTX, NASA/JPL/MSSS)",
+ "ortho_url": "https://planetarymaps.usgs.gov/mosaic/mars2020_trn/CTX/JEZ_ctx_B_soc_008_orthoMosaic_6m_Eqc_latTs0_lon0.tif",
+ "ortho_credit": "Fergason, R.L. et al. (2020) Context Camera Orthorectified Image Mosaic for Mars 2020 Terrain Relative Navigation, USGS Astrogeology, doi:10.5066/P9GV1ND3 (6 m; MRO CTX, NASA/JPL/MSSS)",
+ "cell_target_m": 40,
+ "texture_px": 2560,
+ "habitat": [18.4447, 77.4508],
+ "habitat_note": "Assumed habitat at the Octavia E. Butler landing site (Perseverance touchdown, 18.4447 N 77.4508 E). A real habitat site would be chosen by mission planners.",
+ "center": [18.455, 77.40],
+ "layers": {
+  "ctx6": ["CTX Jezero ortho 6 m (Mars 2020 TRN)", "JEZ_ctx_B_soc_008_orthoMosaic_6m_Eqc_latTs0_lon0", 13, "png", "optical"],
+  "ctxw": ["CTX Jezero block-adjusted mosaic", "Jezero_CTX_BlockAdj_dd", 12, "png", "optical"]
+ },
+ "extras": ["traffic", "targets", "traverse", "meda", "pov"]
+}

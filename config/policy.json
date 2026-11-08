@@ -1,0 +1,37 @@
+{
+ "_about": "Walkback mission policy. Every limit the planner enforces lives here with its source. 'basis' is 'sourced' (a published number), 'derived' (computed from sourced numbers) or 'assumed' (our placeholder; a mission would set it). Edit this file to apply your own rules; the app reloads it on start.",
+ "version": "2026-11-09",
+ "params": {
+  "max_slope_deg": {"value": 20, "unit": "deg", "basis": "sourced", "source": "NASA xEVA System Concept of Operations, EVA-EXP-0042 Rev B (2020), p.38: walking up/down/across slopes up to 20 deg (Apollo 15 ~17 deg)."},
+  "caution_slope_deg": {"value": 15, "unit": "deg", "basis": "assumed", "source": "Walkback caution band below the 20 deg limit."},
+  "pace_kmh": {"value": 2.0, "unit": "km/h", "basis": "sourced", "source": "EVA-EXP-0042 Rev B p.40: traverses assume ~2 km/hr walking pace over relatively level regolith (lunar)."},
+  "eva_planned_h": {"value": 6, "unit": "h", "basis": "sourced", "source": "EVA-EXP-0042 Rev B p.89: planned EVA excursions 4-8 h (6 +/- 2 h). We use the 6 h centre."},
+  "consumables_h": {"value": 8, "unit": "h", "basis": "assumed", "source": "Walk-back criterion capacity: elapsed time + walk-back time must stay under this at every point. 8 h = upper end of the 4-8 h range in EVA-EXP-0042 p.89; a real suit's consumables and reserve would replace it."},
+  "consumables_reserve_min": {"value": 30, "unit": "min", "basis": "assumed", "source": "Reserve kept back from the consumables capacity."},
+  "station_min": {"value": 20, "unit": "min", "basis": "assumed", "source": "Default time on station per science stop."},
+  "egress_ingress_min": {"value": 30, "unit": "min", "basis": "assumed", "source": "Airlock egress + ingress overhead inside the planned EVA time."},
+  "sunset_margin_min": {"value": 45, "unit": "min", "basis": "assumed", "source": "Be back inside this long before sunset (from MEDA sunset climatology)."},
+  "cold_limit_c": {"value": -60, "unit": "deg C", "basis": "assumed", "source": "Caution if forecast air temperature (MEDA climatology, 1.45 m) drops below this during the EVA."},
+  "effort_ref_w": {"value": 469, "unit": "W", "basis": "assumed", "source": "Average walking-effort reference (= 1600 BTU/h). Carried over from the prototype; source not verified. Effort is an index, not a flight value."},
+  "body_mass_kg": {"value": 80, "unit": "kg", "basis": "assumed", "source": "Crew member body mass."},
+  "suit_mass_kg": {"value": 45, "unit": "kg", "basis": "assumed", "source": "Suit + carried load. Only used in the 'high' effort case."},
+  "shelter_quiet_min": {"value": null, "unit": "min", "basis": "derived", "source": "Quiet space weather: no extra radiation limit; the consumables walk-back criterion binds. Baseline GCR dose still reported (RAD ~0.64 mSv/day)."},
+  "shelter_watch_min": {"value": 90, "unit": "min", "basis": "assumed", "source": "Watch (Mars-directed CME predicted in 24-72 h): our placeholder. There is no agreed definition of time-to-shelter for Mars (Loewe et al. 2025, arXiv:2502.02469)."},
+  "shelter_warning_min": {"value": 30, "unit": "min", "basis": "derived", "source": "Warning: stay within 30 min of shelter. A RAD-based nowcast can give >= 30 min to avoid the SEP peak and most of the dose (Loewe et al. 2025, arXiv:2502.02469; ~50 min for the 20 May 2024 event)."},
+  "warning_blocks_new_eva": {"value": true, "unit": "bool", "basis": "assumed", "source": "No new EVA starts under a Warning; the plan is shown as NO-GO with a reduced alternative."},
+  "watch_hours": {"value": 72, "unit": "h", "basis": "assumed", "source": "CME arrival predicted within this window -> Watch."},
+  "warning_hours": {"value": 24, "unit": "h", "basis": "assumed", "source": "CME arrival predicted within this window (or arrived in the past 12 h) -> Warning."},
+  "warning_past_hours": {"value": 12, "unit": "h", "basis": "assumed", "source": "Keep Warning this long after a predicted arrival."},
+  "buddy_assist_pace_factor": {"value": 0.5, "unit": "x", "basis": "assumed", "source": "Pace when one crew member helps an impaired partner (buddy rule contingency). Used for the 'assisted walk-back' ETA."},
+  "hazard_route_weight": {"value": 1.5, "unit": "x", "basis": "assumed", "source": "Route cost multiplier = 1 + weight x terrain hazard (0..1)."},
+  "hazard_block": {"value": 0.85, "unit": "0-1", "basis": "assumed", "source": "Cells with terrain hazard at or above this are treated as impassable."},
+  "soft_ti_max": {"value": 180, "unit": "TIU", "basis": "assumed", "source": "Thermal inertia below this suggests fine, loose material (soft-ground risk). Jezero TI p5/p50/p95 = 170/234/315 on our grid (Edwards & Buz 2021)."},
+  "gcr_msv_per_day": {"value": 0.64, "unit": "mSv/day", "basis": "sourced", "source": "Curiosity RAD surface dose equivalent rate, ~0.64 mSv/day (Hassler et al. 2014, Science 343)."}
+ },
+ "effort_cases": {
+  "_about": "Walking cost = k x Minetti et al. (2002) cost of walking C(i) [J/kg/m] x mass x distance. Minetti is Earth, unsuited treadmill data; k turns it into a range for a suited astronaut on Mars.",
+  "low": {"k": 0.73, "mass": "body", "pace_factor": 1.2, "source": "Unsuited, reduced gravity: Farley & McMahon (1992, J Appl Physiol 73:2709) measured ~33% lower walking cost at 25% g; we interpolate ~27% lower at Mars 0.38 g. Faster pace (assumed +20%)."},
+  "central": {"k": 1.0, "mass": "body", "pace_factor": 1.0, "source": "Suited partial-gravity walking ~ Earth shirtsleeve cost: Earth Shirtsleeve Performance Index 1.0/0.8/0.6 at 10/20/30% grade, lunar gravity, Mark III suit (Norcross et al. 2010, NASA IST-2 report, NTRS 20110003409)."},
+  "high": {"k": 1.0, "mass": "body+suit", "pace_factor": 0.75, "source": "Pessimistic: full suit+load mass at Earth-equivalent cost, slower pace (assumed -25%). Mars-gravity suited walking data were not found; EVA Walkback Test (NASA/TP-2009-214796) was lunar gravity only."}
+ }
+}
