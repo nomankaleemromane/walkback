@@ -11,6 +11,8 @@ import * as M2 from "./map2d.js";
 import { exportGeoJSON, exportGPX, printCard } from "./export.js";
 
 const $ = (id) => document.getElementById(id);
+const SITE = (new URLSearchParams(location.search).get("site") || "jezero").replace(/[^a-z0-9_-]/gi, "");
+const BASE = `data/sites/${SITE}`;
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const mins = (s) => `${Math.round(s / 60)} min`;
 const hm = (s) => { const m = Math.round(s / 60); return m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}` : `${m} min`; };
@@ -26,14 +28,22 @@ window.WALKBACK = S; // for debugging and tests
 async function boot() {
   setNet("…", "");
   S.policy = await fetchGet("config/policy.json", "json");
-  const P = await loadSite("data/sites/jezero", fetchGet);
-  Object.assign(S, { site: P.site, traffic: P.traffic, meta: P.targets, meda: P.meda });
+  const P = await loadSite(BASE, fetchGet);
+  Object.assign(S, { site: P.site, traffic: P.traffic, meta: P.targets || { objectives: [], targets: [] }, meda: P.meda || { hours_ltst: [], bins: [] } });
+  $("siteName").textContent = P.site.name.split(" (")[0];
+  fetchGet("data/sites/index.json", "json").then((ix) => {
+    const sel = $("siteSel");
+    ix.sites.forEach((x) => sel.add(new Option(x.name, x.id)));
+    sel.value = SITE; sel.onchange = () => { location.search = "?site=" + sel.value; };
+  }).catch(() => {});
   S.targets = P.targets.targets.map((t) => ({ ...t, enabled: true }));
   S.T = buildTerrain(P.site, P.raw, P.traffic, S.policy);
   S.home = nearestPassable(S.T, llToCell(S.T, ...P.site.habitat));
   S.cells = S.targets.map((t) => nearestPassable(S.T, llToCell(S.T, t.lat, t.lon)));
   computeWB();
   setupMap();
+  const pts = [S.site.habitat, ...S.targets.filter((t) => t.priority >= 6).map((t) => [t.lat, t.lon])];
+  S.M.map.fitBounds(L.latLngBounds(pts).pad(0.15));
   setupUI();
   renderTargets();
   renderAssumptions();
@@ -155,7 +165,7 @@ function setupMap() {
   S.M = M2.createMap($("map"), S.site, { onTileError: () => { miss++; if (miss === 8) $("layerNote").textContent = "Some NASA Trek tiles failed to load (offline?). Switch the base map to the offline CTX snapshot."; } });
   const map = S.M.map;
   for (const [k, b] of Object.entries(S.M.bases)) $("base").add(new Option(b.label, k));
-  $("base").value = navigator.onLine ? Object.keys(S.site.layers)[0] : "local";
+  $("base").value = navigator.onLine && Object.keys(S.site.layers || {}).length ? Object.keys(S.site.layers)[0] : "local";
   S.M.setBase($("base").value);
   $("base").onchange = () => S.M.setBase($("base").value);
   // overlay registry: [label, kind, how it changes the plan, factory]
@@ -172,6 +182,9 @@ function setupMap() {
     mola: ["MOLA colour elevation (NASA Trek)", "topographic", "Context", () => S.M.trek(M2.TREK_LAYERS.mola), null],
     traverse: ["Perseverance traverse (NASA, to sol 2022)", "rover", "Backtest of the router", () => traverseLayer(), null],
   };
+  if (!S.traffic) { delete S.ovDefs.geo; }
+  if (!S.T.ti) delete S.ovDefs.ti;
+  if (!(S.site.extras || []).includes("traverse")) delete S.ovDefs.traverse;
   const box = $("overlays");
   for (const [k, [label, kind, use]] of Object.entries(S.ovDefs)) {
     const id = "ov-" + k;
@@ -212,7 +225,7 @@ let travLayer = null;
 function traverseLayer() {
   if (travLayer) return travLayer;
   travLayer = L.layerGroup();
-  fetchGet("data/sites/jezero/traverse.geojson", "json").then((g) => {
+  fetchGet(`${BASE}/traverse.geojson`, "json").then((g) => {
     L.geoJSON(g, { filter: (f) => f.geometry.type === "LineString", style: { color: "#fff", weight: 2, opacity: 0.85, dashArray: "4 3" } }).addTo(travLayer);
     if (S.backtest) L.geoJSON(S.backtest.geojson, { style: { color: "#ffd166", weight: 3 } }).addTo(travLayer);
   });
@@ -232,6 +245,11 @@ function addCustomStop(ll) {
   S.targets.push({ id: "custom" + n, name: `Custom stop ${n}`, lat: ll.lat, lon: ll.lng, objective: "X", priority: 5, station_min: S.policy.params.station_min.value, rationale: "Added by the planner.", position_source: "Picked on the map.", approximate: false, pov: [], custom: true, enabled: true });
   S.cells.push(nearestPassable(S.T, llToCell(S.T, ll.lat, ll.lng)));
   S.legsCache.clear(); renderTargets(); recompute();
+}
+function defaultRover() { // halfway to the farthest target
+  let far = S.home, best = -1;
+  S.cells.forEach((c) => { if (c >= 0 && S.WB.T[c] > best && isFinite(S.WB.T[c])) { best = S.WB.T[c]; far = c; } });
+  const p = tracePath(S.WB.P, far); return p[Math.floor(p.length / 2)] ?? S.home;
 }
 function placeRover(k) {
   S.rover = nearestPassable(S.T, k); S.roverOn = true; $("rover").checked = true;
@@ -256,7 +274,7 @@ function setupUI() {
   $("exCard").onclick = () => printCard(S);
   // rover safe haven (optional consideration: rover assistance)
   $("c-plan").insertAdjacentHTML("beforeend", `<h3>Rover assistance <small class="mut">optional</small></h3><div class="row"><label><input type="checkbox" id="rover"> Pressurized rover parked as a second safe haven</label><button id="roverPlace">Place on map</button></div><p class="mut small" id="roverNote">A pressurized rover counts as a safe haven (xEVA con-ops, EVA-EXP-0042 p.40). Walk-back times then go to the nearest shelter.</p>`);
-  $("rover").onchange = () => { S.roverOn = $("rover").checked; if (S.roverOn && S.rover == null) S.rover = nearestPassable(S.T, llToCell(S.T, 18.4545, 77.4105)); computeWB(); refreshOverlay("wb"); recompute(); computeFound(); };
+  $("rover").onchange = () => { S.roverOn = $("rover").checked; if (S.roverOn && S.rover == null) S.rover = SITE === "jezero" ? nearestPassable(S.T, llToCell(S.T, 18.4545, 77.4105)) : defaultRover(); computeWB(); refreshOverlay("wb"); recompute(); computeFound(); };
   $("roverPlace").onclick = () => { S.placingRover = true; setMode("plan"); $("roverNote").textContent = "Click the map where the rover should park."; };
   document.addEventListener("keydown", (e) => {
     if (e.target.matches("input, select, textarea")) return;
@@ -311,12 +329,13 @@ function renderNow() {
   const now = new Date(), { mt, bin } = seasonBin(), lat = S.site.habitat[0];
   const sun = sunriseSunset(lat, mt.declDeg), el = sunElevation(mt.ltst, lat, mt.declDeg);
   const tr = bin ? tempRange(bin, S.meda.hours_ltst, mt.ltst - 0.25, mt.ltst + 0.25) : null;
+  const medaNote = S.meda.bins.length ? "No live Jezero weather is published (NASA's Perseverance weather feed ends Apr 2024), so conditions are MEDA climatology for this season." : "No surface weather climatology in this site pack: sunset is computed (Mars24), temperatures unknown.";
   const sw = S.swNow || swState();
   $("nowKv").innerHTML = [
-    [`Sol ${m20Sol(now)}`, `Perseverance mission sol · ${now.toISOString().slice(0, 16).replace("T", " ")} UTC`],
+    SITE === "jezero" ? [`Sol ${m20Sol(now)}`, `Perseverance mission sol · ${now.toISOString().slice(0, 16).replace("T", " ")} UTC`] : [`MSD ${Math.floor(mt.msd)}`, `Mars sol date · ${now.toISOString().slice(0, 16).replace("T", " ")} UTC`],
     [`${fmtH(mt.ltst)} LTST`, `local solar time · sun ${el > 0 ? el.toFixed(0) + "° up" : "below horizon"}`],
     [`Ls ${mt.Ls.toFixed(0)}°`, seasonName(mt.Ls)],
-    [`${fmtH(bin && bin.sunset_ltst || sun.set)}`, "sunset (MEDA climatology)"],
+    [`${fmtH(bin && bin.sunset_ltst || sun.set)}`, bin ? "sunset (MEDA climatology)" : "sunset (computed, Mars24)"],
     [tr ? `${tr.lo.toFixed(0)} to ${tr.hi.toFixed(0)} °C` : "–", "air temp now (MEDA, typical)"],
     [bin && bin.opacity_mean != null ? `τ ≈ ${bin.opacity_mean}` : "–", "dust opacity (Mastcam-Z, typical)"],
   ].map(([b, s]) => `<div><b>${b}</b><small>${s}</small></div>`).join("");
@@ -325,7 +344,7 @@ function renderNow() {
   $("swt").innerHTML = `<b>CME arrival alert (proxy for SEP risk).</b> ${esc(sw.why)} ` +
     `Shelter-time limit: <b>${lim == null ? "none beyond consumables" : lim + " min"}</b>${S.radOverride ? " (manual override)" : ""}. ` +
     `SEPs can arrive before the CME shock, so this is a proxy, not an SEP forecast. No dedicated Mars SEP monitor since MAVEN was declared lost (June 2026); Curiosity RAD is the surface reference (~0.64 mSv/day background; 20 May 2024 event ≈ 8.1 mGy). ` +
-    `No live Jezero weather is published (NASA's Perseverance weather feed ends Apr 2024), so conditions are MEDA climatology for this season.`;
+    medaNote;
 }
 const seasonName = (Ls) => (Ls < 90 ? "northern spring" : Ls < 180 ? "northern summer" : Ls < 270 ? "northern autumn (dusty season)" : "northern winter (dusty season)");
 
@@ -376,6 +395,7 @@ function drawCharts() {
   if (bin && bin.sunset_ltst) sun.set = bin.sunset_ltst;
   const end = ltstAt(S.plan ? S.plan.totalS : 0);
   tempChart($("tempChart"), bin, S.meda.hours_ltst, S.startLtst, end, sun);
+  if (!bin) { $("windowNote").textContent = "No MEDA climatology for this site."; return; }
   // best start: warmest feasible window
   let best = null;
   for (let h = 7; h <= 14; h += 0.5) { const r = tempRange(bin, S.meda.hours_ltst, h, h + 6 / SOL_H); if (r && (!best || r.lo > best.lo)) best = { h, lo: r.lo }; }
@@ -404,7 +424,7 @@ function renderTargets() {
         <div class="nm"><div class="nm1"><b data-open="${i}" tabindex="0" role="button">${esc(t.name)}</b><span class="chip" id="chip-${i}">–</span></div>
           <small>${t.sample ? `Perseverance sample “${esc(t.sample)}”, sol ${t.sample_sol}` : "custom"}</small>
           <div class="nm2"><label>priority <input class="prio" type="number" min="1" max="10" value="${t.priority}" data-pr="${i}"></label><label>on station <input class="prio" type="number" min="5" max="120" step="5" value="${t.station_min}" data-sm="${i}"> min</label></div></div>
-        <div class="tg-detail">${esc(t.rationale)}<br><small>${esc(t.position_source)}</small>${t.pov && t.pov.length ? `<div class="pov">${t.pov.map((p) => `<figure><a href="${esc(p.page || p.source_url)}" target="_blank" rel="noopener"><img loading="lazy" src="data/sites/jezero/${esc(p.file)}" alt="Perseverance ${esc(p.camera)} image, sol ${p.sol}"></a><figcaption>${esc(p.camera)} · sol ${p.sol} · ${esc(p.credit)}</figcaption></figure>`).join("")}</div><small>Raw Perseverance images near this stop (point-of-view at the destination).</small>` : ""}</div>
+        <div class="tg-detail">${esc(t.rationale)}<br><small>${esc(t.position_source)}</small>${t.pov && t.pov.length ? `<div class="pov">${t.pov.map((p) => `<figure><a href="${esc(p.page || p.source_url)}" target="_blank" rel="noopener"><img loading="lazy" src="${BASE}/${esc(p.file)}" alt="Perseverance ${esc(p.camera)} image, sol ${p.sol}"></a><figcaption>${esc(p.camera)} · sol ${p.sol} · ${esc(p.credit)}</figcaption></figure>`).join("")}</div><small>Raw Perseverance images near this stop (point-of-view at the destination).</small>` : ""}</div>
       </div>`).join("") + "</div>";
   }).join("");
   const box = $("objectives");
@@ -529,14 +549,15 @@ export function computeFound() {
 // ------------------------------------------------------------------ backtest panel
 async function loadBacktest() {
   try {
-    const b = await fetchGet("data/sites/jezero/backtest.json", "json");
+    if (!(S.site.extras || []).includes("traverse")) throw 0;
+    const b = await fetchGet(`${BASE}/backtest.json`, "json");
     S.backtest = b;
     const s = b.summary;
     $("backtest").innerHTML = `<p>Walkback's router vs Perseverance's real drives (NASA traverse), ${s.n_pairs} waypoint pairs ${s.min_sep_m}–${s.max_sep_m} m apart inside the DEM.</p>
-      <div class="stats"><div><b>${(s.median_overlap * 100).toFixed(0)}%</b><small>median path overlap (within ${s.buffer_m} m)</small></div><div><b>${s.median_length_ratio.toFixed(2)}×</b><small>median predicted / actual length</small></div><div><b>${s.median_maxslope_pred.toFixed(1)}° / ${s.median_maxslope_act.toFixed(1)}°</b><small>median max slope, predicted / driven</small></div></div>
+      <div class="stats"><div><b>${(s.median_overlap * 100).toFixed(0)}% vs ${(s.median_overlap_straight * 100).toFixed(0)}%</b><small>rover path within ${s.buffer_m} m of Walkback route vs straight line</small></div><div><b>${(100 - s.mean_act_blocked_share * 100).toFixed(1)}%</b><small>of ground the rover drove is walkable in our model</small></div><div><b>${s.median_maxslope_pred.toFixed(1)}° / ${s.median_maxslope_act.toFixed(1)}°</b><small>median max slope, predicted / driven</small></div></div>
       <p class="small mut">${esc(b.interpretation)}</p><label class="small"><input type="checkbox" id="btShow"> Show on map (white = rover, yellow = Walkback)</label>`;
     $("btShow").onchange = (e) => { $("ov-traverse").checked = e.target.checked; travLayer = null; toggleOverlay("traverse", e.target.checked); };
-  } catch { $("backtest").innerHTML = `<small class="mut">Run <code>node scripts/backtest.mjs</code> to build the backtest.</small>`; }
+  } catch { $("backtest").innerHTML = `<small class="mut">No rover traverse backtest for this site pack (Jezero has one: <code>node scripts/backtest.mjs</code>).</small>`; }
 }
 
 // ------------------------------------------------------------------ assumptions & credits
@@ -545,9 +566,9 @@ function renderAssumptions() {
   $("assume").innerHTML = `<p class="small">Every limit lives in <code>config/policy.json</code> with its source. <span class="basis sourced">sourced</span> = published number, <span class="basis derived">derived</span> = computed from sources, <span class="basis assumed">assumed</span> = our placeholder.</p>` +
     Object.entries(P).map(([k, p]) => `<div class="assume-row"><b>${k.replace(/_/g, " ")}</b>: ${p.value == null ? "none" : p.value} ${p.unit} <span class="basis ${p.basis}">${p.basis}</span><br><small>${esc(p.source)}</small></div>`).join("") +
     `<h3>Effort model range</h3><p class="small">${esc(S.policy.effort_cases._about)}</p>` + ["low", "central", "high"].map((c) => `<div class="assume-row"><b>${c}</b>: <small>${esc(S.policy.effort_cases[c].source)}</small></div>`).join("") +
-    `<h3>Trafficability</h3><p class="small">${esc(S.traffic.method)} Geology covers ${S.traffic.geology_coverage_pct}% of the grid; elsewhere hazard uses the DEM and thermal inertia only (hatched on the hazard map). The CTX DTM resolves features of roughly 60–100 m, so single boulders are not visible to it.</p>` +
+    (S.traffic ? `<h3>Trafficability</h3><p class="small">${esc(S.traffic.method)} Geology covers ${S.traffic.geology_coverage_pct}% of the grid; elsewhere hazard uses the DEM and thermal inertia only (hatched on the hazard map). The CTX DTM resolves features of roughly 60–100 m, so single boulders are not visible to it.</p>` : `<h3>Trafficability</h3><p class="small">This site pack has terrain only (slope + roughness). Geology and thermal-inertia layers are not built yet, so hazard confidence is low everywhere.</p>`) +
     `<h3>Not modelled</h3><p class="small">Suit thermal limits, lighting/shadows from terrain, dust storms beyond climatology, communications line of sight, and medical events other than a slowed (buddy-assisted) walk back. Rover/human path differences. These are listed in docs/IMPLEMENTATION.md.</p>`;
-  $("credits").innerHTML = `Data: NASA Mars Trek (WMTS); ${esc(S.site.dem_source)}; ${esc(S.site.texture_source)}; ${esc(S.traffic.sources.geology)}; ${esc(S.traffic.sources.ti)}; ${esc(S.meda.source)}; NASA CCMC DONKI (WSA-Enlil); Perseverance waypoints/traverse and raw images © NASA/JPL-Caltech (Mastcam-Z: NASA/JPL-Caltech/ASU). ` +
+  $("credits").innerHTML = `Data: NASA Mars Trek (WMTS); ${esc(S.site.dem_source)}; ${esc(S.site.texture_source)}; ${S.traffic ? esc(S.traffic.sources.geology) + "; " + esc(S.traffic.sources.ti) + "; " : ""}${S.meda.source ? esc(S.meda.source) + "; " : ""}NASA CCMC DONKI (WSA-Enlil); Perseverance waypoints/traverse and raw images © NASA/JPL-Caltech (Mastcam-Z: NASA/JPL-Caltech/ASU). ` +
     `Walkback is a research prototype for NASA Space Apps 2026, not flight software. Built with AI assistance (see README).`;
 }
 

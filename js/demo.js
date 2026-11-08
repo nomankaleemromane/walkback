@@ -13,8 +13,8 @@ export async function runDemo(S, A) {
   try {
     A.setMode("plan"); if (S.view === "3d") await A.setView("2d");
     if (S.roverOn) { $("rover").checked = false; $("rover").dispatchEvent(new Event("change")); }
-    S.M.map.fitBounds([[18.42, 77.38], [18.475, 77.465]]);
     A.setSw("quiet");
+    if (S.route.getLatLngs().length) S.M.map.fitBounds(S.route.getBounds().pad(0.25));
     await say(`<b>Quiet space weather.</b> Walkback plans a Marswalk from the habitat to the Jezero delta front and the Séítah olivine unit: ${S.plan ? S.plan.order.length : 0} science stops, verdict <b>${S.verdict.verdict}</b>.`, 7500);
     await say(`Every point of the route stays inside the walk-back criterion: the crew can always get home before consumables, daylight or radiation limits run out. Binding now: <b>${S.verdict.binding}</b>.`);
     A.setSw("watch");

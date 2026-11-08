@@ -1,0 +1,37 @@
+{
+ "id": "gale",
+ "name": "Gale crater (Curiosity field site)",
+ "w": 370,
+ "h": 444,
+ "west": 137.29999194995605,
+ "east": 137.54966005401866,
+ "south": -4.84964217365584,
+ "north": -4.549986528120114,
+ "cell_x": 39.8628161121937,
+ "cell_y": 40.004499437570296,
+ "mars_radius_m": 3396190.0,
+ "native_res_m": 20,
+ "agg_factor": 2,
+ "habitat": [
+  -4.5895,
+  137.4417
+ ],
+ "habitat_note": "Assumed habitat at Curiosity's Bradbury Landing (4.5895 S 137.4417 E).",
+ "center": [
+  -4.65,
+  137.42
+ ],
+ "dem_source": "MSL Gale DEM mosaic 1 m v3 (USGS Astrogeology; HiRISE stereo, NASA/JPL/UArizona), read at 20 m",
+ "dem_url": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSL/MSL_Gale_DEM_Mosaic_1m_v3.tif",
+ "texture_source": "MSL Gale HiRISE LRGB mosaic (USGS Astrogeology; HiRISE NASA/JPL/UArizona)",
+ "layers": {},
+ "extras": [
+  "targets"
+ ],
+ "rasters": {
+  "dem": "dem.bin",
+  "slope": "slope.bin",
+  "rough": "rough.bin"
+ },
+ "notes": []
+}

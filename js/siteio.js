@@ -8,9 +8,10 @@ export async function loadSite(base, get) {
     bin("dem", Int16Array), bin("slope", Uint8Array), bin("rough", Uint8Array),
     bin("geo_bed", Uint8Array), bin("geo_surf", Uint8Array), bin("ti", Uint16Array),
   ]);
+  const has = (x) => !site.extras || site.extras.includes(x);
   const opt = async (f) => { try { return await get(`${base}/${f}`, "json"); } catch { return null; } };
   const [traffic, targets, meda] = await Promise.all([
-    site.traffic ? opt(site.traffic) : null, opt("targets.json"), opt("meda.json"),
+    site.traffic ? opt(site.traffic) : null, has("targets") ? opt("targets.json") : null, has("meda") ? opt("meda.json") : null,
   ]);
   return { site, raw: { dem, slope, rough, geo_bed, geo_surf, ti }, traffic, targets, meda };
 }

@@ -78,12 +78,19 @@ def main(cfg_path):
         x0, y0 = to_native(ds, W, S)
         x1, y1 = to_native(ds, E, N)
         win = from_bounds(x0, y0, x1, y1, ds.transform).round_offsets().round_lengths()
-        z = ds.read(1, window=win).astype("float64")
         tr = ds.window_transform(win)
         nod = ds.nodata
         res_native = abs(tr.a)  # metres (projected) or degrees
         if ds.crs and ds.crs.is_geographic:
             res_native = math.radians(res_native) * R_MARS
+        rr = cfg.get("read_res_m")
+        if rr and rr > res_native:  # decimated read: GDAL uses the file's overviews, so only a little is downloaded
+            oh, ow = int(round(win.height * res_native / rr)), int(round(win.width * res_native / rr))
+            z = ds.read(1, window=win, out_shape=(oh, ow), resampling=Resampling.average).astype("float64")
+            tr = tr * tr.scale(win.width / ow, win.height / oh)
+            res_native = rr
+        else:
+            z = ds.read(1, window=win).astype("float64")
         # real bbox of the window actually read
         h0, w0 = z.shape
         wx0, wy1 = tr * (0, 0)
@@ -139,11 +146,12 @@ def main(cfg_path):
                 x0, y0 = to_native(ds, west, south)
                 x1, y1 = to_native(ds, east, north)
                 win = from_bounds(x0, y0, x1, y1, ds.transform)
-                a = ds.read(1, window=win, out_shape=(tex_h, tex_w), resampling=Resampling.average, boundless=True, fill_value=0).astype("float32")
+                nb = 3 if ds.count >= 3 else 1
+                a = ds.read(list(range(1, nb + 1)), window=win, out_shape=(nb, tex_h, tex_w), resampling=Resampling.average, boundless=True, fill_value=0).astype("float32")
             v = a[a > 0]
             lo, hi = np.percentile(v, [0.5, 99.5]) if v.size else (0, 255)
-            a = np.clip((a - lo) / max(hi - lo, 1) * 255, 0, 255)
-            img = Image.fromarray(a.astype(np.uint8), "L")
+            a = np.clip((a - lo) / max(hi - lo, 1) * 255, 0, 255).astype(np.uint8)
+            img = Image.fromarray(a[0], "L") if nb == 1 else Image.fromarray(np.moveaxis(a, 0, -1), "RGB")
             tex_src = cfg.get("ortho_credit", "orthoimage")
         except Exception as e:  # fall back to hillshade
             print("ortho failed:", e)

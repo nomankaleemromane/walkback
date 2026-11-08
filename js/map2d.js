@@ -23,14 +23,14 @@ export function createMap(el, site, { onTileError } = {}) {
   const bounds = [[site.south, site.west], [site.north, site.east]];
   const bases = {};
   for (const [k, v] of Object.entries(site.layers || {})) bases[k] = { label: v[0] + " (NASA Trek)", kind: v[4], make: () => trek(v, bounds) };
-  bases.local = { label: "CTX 6 m snapshot (offline, USGS)", kind: "optical", make: () => L.imageOverlay(`data/sites/${site.id}/texture.jpg`, bounds, { attribution: "USGS / MRO CTX" }) };
+  bases.local = { label: "Offline image snapshot (site pack)", kind: "optical", make: () => L.imageOverlay(`data/sites/${site.id}/texture.jpg`, bounds, { attribution: (site.texture_source || "").split(",")[0] }) };
   bases.viking = { label: TREK_LAYERS.viking[0] + " (NASA Trek)", kind: "optical", make: () => trek(TREK_LAYERS.viking) };
   bases.blend = { label: TREK_LAYERS.blend[0] + " (NASA Trek)", kind: "topographic", make: () => trek(TREK_LAYERS.blend) };
   const context = trek(TREK_LAYERS.viking); // regional context under everything
   context.setZIndex(1).addTo(map);
   let base = null;
   const setBase = (k) => { if (base) map.removeLayer(base); base = bases[k].make(); base.addTo(map); if (base.setZIndex) base.setZIndex(2); };
-  map.fitBounds([[18.40, 77.28], [18.52, 77.48]]);
+  map.fitBounds(bounds);
   return { map, bases, setBase, bounds, trek };
 }
 

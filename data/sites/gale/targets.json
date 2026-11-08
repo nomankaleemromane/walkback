@@ -1,0 +1,130 @@
+{
+ "objectives": [
+  {
+   "id": "A",
+   "name": "Ancient lake mudstones",
+   "goal": "Sample fine-grained lake sediments that recorded a habitable environment."
+  },
+  {
+   "id": "B",
+   "name": "Base of Mount Sharp",
+   "goal": "Reach the Murray formation at the base of Mount Sharp to study how the climate changed."
+  },
+  {
+   "id": "C",
+   "name": "Sandstones and fluids",
+   "goal": "Examine sandstones that record later groundwater."
+  }
+ ],
+ "targets": [
+  {
+   "id": "john_klein",
+   "name": "Yellowknife Bay",
+   "lat": -4.589485,
+   "lon": 137.44913,
+   "objective": "A",
+   "priority": 9,
+   "station_min": 20,
+   "sample": "John Klein",
+   "sample_sol": 182,
+   "rationale": "Curiosity drill target John Klein.",
+   "approximate": true,
+   "pov": [],
+   "position_source": "Curiosity waypoint 6_0 (sol 166), last localization on or before sol 182 (drill sol to verify); approximate."
+  },
+  {
+   "id": "cumberland",
+   "name": "Yellowknife Bay (Cumberland)",
+   "lat": -4.589479,
+   "lon": 137.449113,
+   "objective": "A",
+   "priority": 7,
+   "station_min": 20,
+   "sample": "Cumberland",
+   "sample_sol": 279,
+   "rationale": "Curiosity drill target Cumberland.",
+   "approximate": true,
+   "pov": [],
+   "position_source": "Curiosity waypoint 6_82 (sol 274), last localization on or before sol 279 (drill sol to verify); approximate."
+  },
+  {
+   "id": "windjana",
+   "name": "The Kimberley",
+   "lat": -4.638843,
+   "lon": 137.40201,
+   "objective": "C",
+   "priority": 7,
+   "station_min": 20,
+   "sample": "Windjana",
+   "sample_sol": 621,
+   "rationale": "Curiosity drill target Windjana.",
+   "approximate": true,
+   "pov": [],
+   "position_source": "Curiosity waypoint 31_1330 (sol 609), last localization on or before sol 621 (drill sol to verify); approximate."
+  },
+  {
+   "id": "confidence",
+   "name": "Pahrump Hills",
+   "lat": -4.662699,
+   "lon": 137.377464,
+   "objective": "B",
+   "priority": 9,
+   "station_min": 20,
+   "sample": "Confidence Hills",
+   "sample_sol": 759,
+   "rationale": "Curiosity drill target Confidence Hills.",
+   "approximate": true,
+   "pov": [],
+   "position_source": "Curiosity waypoint 42_1020 (sol 753), last localization on or before sol 759 (drill sol to verify); approximate."
+  },
+  {
+   "id": "mojave",
+   "name": "Pahrump Hills (Mojave)",
+   "lat": -4.662864,
+   "lon": 137.37745,
+   "objective": "B",
+   "priority": 6,
+   "station_min": 20,
+   "sample": "Mojave",
+   "sample_sol": 882,
+   "rationale": "Curiosity drill target Mojave.",
+   "approximate": true,
+   "pov": [],
+   "position_source": "Curiosity waypoint 45_0 (sol 864), last localization on or before sol 882 (drill sol to verify); approximate."
+  },
+  {
+   "id": "telegraph",
+   "name": "Telegraph Peak",
+   "lat": -4.663527,
+   "lon": 137.377452,
+   "objective": "B",
+   "priority": 6,
+   "station_min": 20,
+   "sample": "Telegraph Peak",
+   "sample_sol": 908,
+   "rationale": "Curiosity drill target Telegraph Peak.",
+   "approximate": true,
+   "pov": [],
+   "position_source": "Curiosity waypoint 45_450 (sol 903), last localization on or before sol 908 (drill sol to verify); approximate."
+  },
+  {
+   "id": "buckskin",
+   "name": "Marias Pass",
+   "lat": -4.668025,
+   "lon": 137.370299,
+   "objective": "B",
+   "priority": 8,
+   "station_min": 20,
+   "sample": "Buckskin",
+   "sample_sol": 1060,
+   "rationale": "Curiosity drill target Buckskin.",
+   "approximate": true,
+   "pov": [],
+   "position_source": "Curiosity waypoint 48_2542 (sol 1056), last localization on or before sol 1060 (drill sol to verify); approximate."
+  }
+ ],
+ "sources": {
+  "positions": "NASA/JPL-Caltech MMGIS MSL_waypoints.json"
+ },
+ "priority_note": "Demo priorities (assumed)."
+}
