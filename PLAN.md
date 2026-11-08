@@ -31,7 +31,7 @@ Walkback is a Mars EVA planner that always knows the way home. Built for the NAS
 | THEMIS thermal inertia of Jezero (Edwards & Buz 2021) | OK: Zenodo 10.5281/zenodo.4931348, CC BY 4.0, 100 m | downloaded |
 | MEDA temperatures | Zenodo 10.5281/zenodo.11198655 (Munguira et al. 2024), CC BY 4.0 | downloaded |
 
-## Phases (commit after each)
+## Phases (commit after each) - status Nov 9: all phases done; see docs/CHECKLIST.md for open items
 
 1. **Data pipeline** - `scripts/`: site-pack builder (DEM, slope/roughness at 20 m, CTX texture), trafficability (geology + TI), traverse, science targets from NASA sample sols + waypoints, POV images, MEDA climatology, DONKI snapshot. Policy config with sources.
 2. **Core model as tested modules** - effort (low/central/high), router, walkback field, orienteering planner, alert logic, Mars sun/time. Node unit tests.
@@ -49,3 +49,11 @@ Walkback is a Mars EVA planner that always knows the way home. Built for the NAS
 - The effort model is not flight-valid: show it as a range, never a single number.
 - Rover path != human path: frame backtest as "traversability agreement".
 - Live feeds can fail: snapshots + "cached, N days old" labels.
+
+## Changes to the brief made after checking sources
+
+- Warning shelter limit 30 min (derived); Watch 90 min (assumed). The brief's 0.5/0.15 multipliers were dropped.
+- The EVA Walkback Test was lunar-only; effort range uses Farley & McMahon 1992 + NASA IST-2 (Norcross et al. 2010) instead.
+- SEXTANT already computes walk-back on the Moon, so the gap claim is the Mars combination (space weather + weather + geology/thermal + offline), phrased as "we did not find".
+- A rover parked at the delta does NOT help under a Warning (the corridor is >30 min from both shelters); starting the EVA from the rover does. Demo and docs say this.
+- Backtest: traversability agrees (98.5%); path choice is no better than a straight line. Reported as such.

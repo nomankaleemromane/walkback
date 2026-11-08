@@ -2,6 +2,7 @@
 const $ = (id) => document.getElementById(id);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 let running = false;
+const BIND = { eva: "planned EVA length", consumables: "consumables walk-back", radiation: "radiation shelter time", daylight: "daylight" };
 
 export async function runDemo(S, A) {
   if (running) { running = false; return; }
@@ -16,9 +17,9 @@ export async function runDemo(S, A) {
     A.setSw("quiet");
     if (S.route.getLatLngs().length) S.M.map.fitBounds(S.route.getBounds().pad(0.25));
     await say(`<b>Quiet space weather.</b> Walkback plans a Marswalk from the habitat to the Jezero delta front and the Séítah olivine unit: ${S.plan ? S.plan.order.length : 0} science stops, verdict <b>${S.verdict.verdict}</b>.`, 7500);
-    await say(`Every point of the route stays inside the walk-back criterion: the crew can always get home before consumables, daylight or radiation limits run out. Binding now: <b>${S.verdict.binding}</b>.`);
+    await say(`Every point of the route stays inside the walk-back criterion: the crew can always get home before consumables, daylight or radiation limits run out. Binding now: <b>${BIND[S.verdict.binding] || "none"}</b>.`);
     A.setSw("watch");
-    await say(`<b>WATCH:</b> NASA's WSA-Enlil model predicts a CME reaching Mars in ~48 h. The shelter-time limit tightens to ${S.lim} min. Verdict <b>${S.verdict.verdict}</b>, binding: <b>${S.verdict.binding}</b>.`);
+    await say(`<b>WATCH:</b> NASA's WSA-Enlil model predicts a CME reaching Mars in ~48 h. The shelter-time limit tightens to ${S.lim} min. Verdict <b>${S.verdict.verdict}</b>, binding: <b>${BIND[S.verdict.binding] || "none"}</b>.`);
     A.setSw("warning");
     await say(`<b>WARNING:</b> arrival within 24 h. Stay within ${S.lim} min of shelter (a RAD-based nowcast gives ≥ 30 min warning). The delta stops drop out; the policy says <b>${S.verdict.verdict}</b> for a new EVA.`, 8000);
     A.setSw("quiet");
@@ -27,13 +28,15 @@ export async function runDemo(S, A) {
     const far = st.reduce((a, b) => (S.WB.T[S.cells[b.node - 1]] > S.WB.T[S.cells[a.node - 1]] ? b : a));
     A.setGo((far.t0 + 60) / S.plan.totalS);
     await say(`<b>Go mode</b> (tablet / visor view). The crew is on station at <b>${far.label}</b>. Big glove-friendly controls show time to shelter and the margin left.`);
+    S.abortCell = A.goCell();
     A.setSw("warning");
+    await say(`A <b>WARNING</b> arrives mid-EVA. The Go view turns red: the crew is now beyond what the new 30-min limit allows.`, 6500);
     A.setMode("abort");
-    await say(`A <b>WARNING</b> arrives mid-EVA. One tap on <b>Abort</b>: least-effort walk-back route, ETA ${$("a-eta").textContent}, buddy-assisted ETA ${$("a-eta2").textContent}.`, 8000);
+    await say(`One tap on <b>Abort</b>: least-effort walk-back route, ETA ${$("a-eta").textContent}, buddy-assisted ETA ${$("a-eta2").textContent}. This is why Walkback refuses delta stops under a Warning.`, 8000);
     A.setMode("plan");
     $("rover").checked = true; $("rover").dispatchEvent(new Event("change"));
     await wait(900);
-    await say(`<b>Rover assistance:</b> park a pressurized rover near the delta as a second safe haven. Under the same WARNING the plan now keeps ${S.plan ? S.plan.order.length : 0} stops (verdict for a new EVA still follows policy).`, 8000);
+    await say(`<b>Rover assistance:</b> the crew drives a pressurized rover to the delta and walks from there. The rover is a safe haven, so even under the WARNING's 30-min limit the delta stops come back: ${S.plan ? S.plan.order.length : 0} stops. (Policy still decides whether to go.)`, 8500);
     await say(`Walkback: real NASA terrain, geology, thermal, weather and space-weather data, one decision: <b>can we get home?</b>`, 5000);
   } catch {}
   cap.hidden = true; btn.textContent = "▶ Demo"; running = false;

@@ -20,7 +20,7 @@ const SOL_H = 1.0275; // Earth hours per Mars "hour" of local solar time
 
 export const S = {
   mode: "plan", view: "2d", caseName: "central", startLtst: 9, swMode: "live", radOverride: "",
-  legsCache: new Map(), overlays: {}, goFrac: 0, abortCell: -1, rover: null, roverOn: false,
+  legsCache: new Map(), overlays: {}, goFrac: 0, abortCell: -1, rover: null, roverOn: false, fromRover: true,
 };
 window.WALKBACK = S; // for debugging and tests
 
@@ -113,10 +113,10 @@ function radLimit(level) {
   return shelterLimitMin(level, S.policy);
 }
 function legsFor(limitMin, ec) {
-  const v = ec.paceKmh / 3.6, key = `${limitMin}|${ec.paceKmh}|${S.roverOn ? S.rover : -1}`;
+  const v = ec.paceKmh / 3.6, key = `${limitMin}|${ec.paceKmh}|${S.roverOn ? S.rover : -1}|${startCell()}`;
   if (!S.legsCache.has(key)) {
     const allow = limitMin == null ? null : Uint8Array.from(S.WB.T, (t) => (t / v <= limitMin * 60 ? 1 : 0));
-    S.legsCache.set(key, buildLegs(S.T, S.WB, [S.home, ...S.cells], { allow, hazW: S.policy.params.hazard_route_weight.value }).legs);
+    S.legsCache.set(key, buildLegs(S.T, S.WB, [startCell(), ...S.cells], { allow, hazW: S.policy.params.hazard_route_weight.value }).legs);
   }
   return S.legsCache.get(key);
 }
@@ -246,6 +246,7 @@ function addCustomStop(ll) {
   S.cells.push(nearestPassable(S.T, llToCell(S.T, ll.lat, ll.lng)));
   S.legsCache.clear(); renderTargets(); recompute();
 }
+export const startCell = () => (S.roverOn && S.fromRover && S.rover >= 0 ? S.rover : S.home);
 function defaultRover() { // halfway to the farthest target
   let far = S.home, best = -1;
   S.cells.forEach((c) => { if (c >= 0 && S.WB.T[c] > best && isFinite(S.WB.T[c])) { best = S.WB.T[c]; far = c; } });
@@ -265,16 +266,18 @@ function setupUI() {
   $("swm").onchange = () => { S.swMode = $("swm").value; recompute(); };
   $("goT").oninput = () => { S.goFrac = +$("goT").value / 1000; S.abortCell = -1; renderGo(); };
   $("goPlay").onclick = toggleWalk;
+
   $("goAbort").onclick = () => { S.abortCell = goPosition().cell; setMode("abort"); };
   $("abortResume").onclick = () => setMode("go");
   $("view3d").onclick = () => setView(S.view === "2d" ? "3d" : "2d");
-  $("demo").onclick = () => import("./demo.js").then((m) => m.runDemo(S, { setMode, setView, recompute, setSw, setGo, renderAbort }));
+  $("demo").onclick = () => import("./demo.js").then((m) => m.runDemo(S, { setMode, setView, recompute, setSw, setGo, renderAbort, goCell: () => goPosition().cell }));
   $("exGeo").onclick = () => exportGeoJSON(S);
   $("exGpx").onclick = () => exportGPX(S);
   $("exCard").onclick = () => printCard(S);
   // rover safe haven (optional consideration: rover assistance)
-  $("c-plan").insertAdjacentHTML("beforeend", `<h3>Rover assistance <small class="mut">optional</small></h3><div class="row"><label><input type="checkbox" id="rover"> Pressurized rover parked as a second safe haven</label><button id="roverPlace">Place on map</button></div><p class="mut small" id="roverNote">A pressurized rover counts as a safe haven (xEVA con-ops, EVA-EXP-0042 p.40). Walk-back times then go to the nearest shelter.</p>`);
+  $("c-plan").insertAdjacentHTML("beforeend", `<h3>Rover assistance <small class="mut">optional</small></h3><div class="row"><label><input type="checkbox" id="rover"> Pressurized rover parked as a second safe haven</label><button id="roverPlace">Place on map</button></div><div class="row"><label><input type="checkbox" id="fromRover" checked> Crew drives out: EVA starts and ends at the rover</label></div><p class="mut small" id="roverNote">A pressurized rover counts as a safe haven (xEVA con-ops, EVA-EXP-0042 p.40). Walk-back times then go to the nearest shelter.</p>`);
   $("rover").onchange = () => { S.roverOn = $("rover").checked; if (S.roverOn && S.rover == null) S.rover = SITE === "jezero" ? nearestPassable(S.T, llToCell(S.T, 18.4545, 77.4105)) : defaultRover(); computeWB(); refreshOverlay("wb"); recompute(); computeFound(); };
+  $("fromRover").onchange = () => { S.fromRover = $("fromRover").checked; S.legsCache.clear(); recompute(); computeFound(); };
   $("roverPlace").onclick = () => { S.placingRover = true; setMode("plan"); $("roverNote").textContent = "Click the map where the rover should park."; };
   document.addEventListener("keydown", (e) => {
     if (e.target.matches("input, select, textarea")) return;
@@ -287,6 +290,8 @@ function setupUI() {
 }
 export function setSw(mode) { S.swMode = mode; $("swm").value = mode; recompute(true); }
 export function setMode(m) {
+  if ((m === "go" || m === "abort") && !S.committed && S.plan) { S.committed = S.plan; S.committedStart = startCell(); S.committedLevel = S.swNow.level; }
+  if (m === "plan") { S.committed = null; S.committedStart = null; }
   S.mode = m; document.body.dataset.mode = m;
   document.querySelectorAll(".modes button").forEach((b) => b.setAttribute("aria-selected", b.dataset.mode === m));
   $("hud").hidden = m !== "go"; $("abortCard").hidden = m !== "abort";
@@ -378,7 +383,7 @@ function renderTimeline() {
   $("timeline").innerHTML = p.steps.map((s) => {
     const t = `<span class="t">${fmtH(ltstAt(s.t0))}</span>`;
     if (s.kind === "walk") {
-      const to = s.to === 0 ? "habitat" : S.targets[s.to - 1].name;
+      const to = s.to === 0 ? (startCell() === S.home ? "habitat" : "rover") : S.targets[s.to - 1].name;
       return `<li class="walk">${t}<span>Walk to ${esc(to)} · ${(s.lengthM / 1000).toFixed(2)} km, +${s.gainM.toFixed(0)}/−${s.lossM.toFixed(0)} m, max ${s.maxSlope.toFixed(0)}°</span><span>${mins(s.t1 - s.t0)}</span></li>`;
     }
     if (s.kind === "station") return `<li class="st">${t}<span><b>${++n}. ${esc(s.label)}</b> · on station</span><span>${mins(s.t1 - s.t0)}</span></li>`;
@@ -467,7 +472,7 @@ function renderTargetStatus() {
 }
 
 function drawRoute() {
-  const p = S.plan;
+  const p = S.mode === "plan" ? S.plan : goPlan();
   const ll = p ? M2.pathLatLngs(S.T, p.path) : [];
   S.route.setLatLngs(ll); S.routeCase.setLatLngs(ll);
   S.markers.clearLayers();
@@ -484,21 +489,24 @@ function drawRoute() {
 }
 
 // ------------------------------------------------------------------ Go / Abort
+// Go/Abort follow the plan committed when Go was entered; limits ("allowed now") stay live.
+const goPlan = () => (S.committed || S.plan);
 function goPosition() {
-  const p = S.plan;
-  if (!p) return { t: 0, cell: S.home };
+  const p = goPlan();
+  if (!p) return { t: 0, cell: startCell() };
   const t = S.goFrac * p.totalS, pr = p.profile;
   let lo = 0, hi = pr.length - 1;
   while (lo < hi) { const m = (lo + hi + 1) >> 1; if (pr[m][0] <= t) lo = m; else hi = m - 1; }
-  return { t, cell: t < S.K.egressS ? S.home : pr[lo][2] };
+  return { t, cell: t < p.K.egressS ? (S.committedStart ?? startCell()) : pr[lo][2] };
 }
 export function setGo(frac) { S.goFrac = frac; $("goT").value = Math.round(frac * 1000); renderGo(); }
 function renderGo() {
-  const p = S.plan;
+  const p = goPlan();
   if (!p) { $("h-next").textContent = "No feasible plan"; return; }
   const { t, cell } = goPosition(), v = S.K.v;
   const wb = S.WB.T[cell] / v, al = allowed(t, S.K), mar = al - wb;
   $("h-clock").textContent = `${fmtH(ltstAt(t))} · ${hm(t)}`;
+  if (S.committed && S.swNow.level !== S.committedLevel) $("h-clock").textContent += " · limits changed";
   $("h-wb").textContent = mins(wb);
   $("h-lim").textContent = mins(al);
   $("h-mar").textContent = mins(mar); $("h-mar").className = mar > 1800 ? "margin-ok" : mar > 0 ? "margin-low" : "margin-bad";
