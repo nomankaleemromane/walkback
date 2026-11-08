@@ -1,0 +1,7 @@
+*.tif
+*.tif.aux.xml
+__pycache__/
+node_modules/
+.cache/
+raw/
+test-results/
