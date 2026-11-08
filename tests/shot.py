@@ -11,6 +11,8 @@ with sync_playwright() as p:
     logs = []
     pg.on("console", lambda m: logs.append(f"[{m.type}] {m.text}"))
     pg.on("pageerror", lambda e: logs.append(f"[pageerror] {e}"))
+    pg.on("response", lambda r: logs.append(f"[http {r.status}] {r.url[:160]}") if r.status >= 400 else None)
+    pg.on("requestfailed", lambda r: logs.append(f"[failed] {r.url[:160]} {r.failure}"))
     pg.goto(url)
     pg.wait_for_timeout(wait)
     if js:

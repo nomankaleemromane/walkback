@@ -1,190 +1,170 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Marswalk Planner · Jezero (live NASA Mars Trek tiles)</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
-<style>
-:root{--bg:#17120f;--card:#231b17;--line:#3d302a;--fg:#f0e6de;--mut:#a8978c;--acc:#ff9a5c}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,sans-serif;display:grid;grid-template-columns:1fr 340px;height:100vh}
-@media(max-width:820px){body{grid-template-columns:1fr;grid-template-rows:60vh auto;height:auto}}
-#map{height:100%;background:#000;min-height:300px}#side{overflow:auto;padding:10px;border-left:1px solid var(--line)}
-.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:9px 11px;margin-bottom:9px}
-h1{font-size:17px;margin:2px 0 8px}h2{font-size:13px;margin:0 0 6px;color:var(--acc)}
-.row{display:flex;gap:6px;align-items:center;margin:4px 0;flex-wrap:wrap}.row label{flex:1;min-width:90px}
-select,input,button{background:#120d0b;color:var(--fg);border:1px solid var(--line);border-radius:5px;padding:4px 7px;font:inherit}button{cursor:pointer}button:hover{border-color:var(--acc)}
-.st{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px}.st b{display:block;font-size:15px}small,.mut{color:var(--mut)}
-#v{display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;background:#555}.go{background:#2e7d32!important}.ca{background:#e0a100!important;color:#111}.ng{background:#c62828!important}
-#stops div{border-top:1px solid var(--line);padding:3px 0}#ro{position:absolute;left:8px;bottom:8px;z-index:999;background:#000b;padding:3px 8px;border-radius:4px;font:12px monospace}
-.bd{display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;background:#555}</style></head><body>
-<div style="position:relative"><div id="map"></div><div id="ro">hover map</div></div>
-<div id="side"><h1>Marswalk Planner · Jezero</h1>
-<div class="card"><h2>Layers (live NASA Mars Trek)</h2>
-<div class="row"><label>Tile server</label><select id="srv"><option value="trek">trek.nasa.gov (no key)</option><option value="api">api.nasa.gov (DEMO_KEY)</option></select></div>
-<div class="row"><label>Base</label><select id="base"></select></div>
-<div class="row"><label>Overlay</label><select id="ovl"></select></div>
-<div class="row"><label>Overlay opacity</label><input type="range" id="oop" min="0" max="100" value="60"></div>
-<div class="row"><label><input type="checkbox" id="ctx" disabled> CTX imagery (sharp)</label><input type="range" id="cop" min="0" max="100" value="100"></div>
-<div class="row"><label><input type="checkbox" id="sl"> Slope</label><label><input type="checkbox" id="hz"> Hazard</label></div>
-<div class="row"><label>Slope/hazard opacity</label><input type="range" id="dop" min="0" max="100" value="60"></div>
-<details><summary class="mut">Add Trek layer (e.g. CTX / HiRISE Jezero)</summary>
-<div class="row"><input id="cid" placeholder="Trek layer ID (e.g. the CTX or HiRISE Jezero mosaic)" style="width:100%"></div>
-<div class="row"><button id="cadd">Find &amp; add layer</button><button id="cauto">Auto-find Jezero CTX/HiRISE</button></div><small class="mut">Paste a layer ID. The app finds the server, format and zoom automatically.</small></details>
-<small id="stat" class="mut" style="word-break:break-all;display:block"></small></div>
-<div class="card"><h2>Space weather at Mars</h2>
-<div class="row"><span id="swb" class="bd">–</span><select id="swm"><option value="auto">Live NASA feed</option><option value="watch">Simulate: Watch</option><option value="warn">Simulate: Warning</option></select></div>
-<small id="swt" class="mut" style="display:block">Loading ...</small></div>
-<div class="card"><h2>Route: least-effort walk from the landing site</h2>
-<div class="row"><button id="p1">Landing → Delta</button><button id="undo">Undo</button><button id="clr">Clear</button><button id="zj">Zoom to Jezero</button></div>
-<div class="row"><label><input type="checkbox" id="wbz"> Walkback zone (time to habitat)</label></div>
-<div class="row"><label>Shelter-time limit (quiet baseline) <b id="shv">60</b> min</label><input type="range" id="shl" min="10" max="240" value="60"></div>
-<div class="row"><label>Crew+suit kg</label><input id="mass" type="number" value="125" style="width:64px"><label>Pace km/h</label><input id="vfl" type="number" step=".1" value="2" style="width:58px"></div>
-<div class="st" id="rs"><small>Click the map to pick a destination.</small></div>
-<p style="margin:7px 0 0"><span id="v">–</span></p><small id="vt" class="mut" style="display:block;margin-top:4px"></small>
-<canvas id="pf" width="320" height="110" style="width:100%;margin-top:6px"></canvas></div>
-<div class="card"><h2>Science stops within 1.5 km</h2><div id="stops"><small>None yet.</small></div></div>
-<div class="card"><h2>Conditions (reference values)</h2>
-<div class="row"><label>Local solar time <b id="tl"></b></label><input type="range" id="tod" min="0" max="24" step=".25" value="11"></div>
-<div class="row"><label>Atmosphere</label><select id="dust"><option value="0">Clear</option><option value="1">Hazy</option><option value="2">Dust storm</option></select></div>
-<div class="st" id="cd"></div><small class="mut">Typical Jezero values, not live. Replace with MEDA data from the PDS.</small></div>
-<details class="card"><summary class="mut">Model assumptions</summary><p class="mut">Effort: Minetti et al. 2002 walking cost (Earth treadmill data) × crew+suit mass. Mars gravity and suit stiffness are NOT modelled, so effort is a relative index, not a flight value. Pace: the flat pace you set, with a Tobler-style slope penalty (assumed). Never-exceed slope 20° follows Artemis xEVA walking limits. The 6 h EVA, 469 W average effort and shelter limit are assumptions you can change. Baseline dose uses Curiosity RAD's 0.64 mSv/day average and ignores suit shielding and solar storms.</p></details>
-</div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
-<script>
-const $=id=>document.getElementById(id),RM=3389.5,TR="https://api.nasa.gov/mars-wmts/catalog/";
-// [label, Trek layer ID, max native Leaflet zoom (= WMTS level), extension]
-const LAY={viking:["Viking color 232 m","Mars_Viking_MDIM21_ClrMosaic_global_232m",7,"jpg"],
-mola:["MOLA color elevation 463 m","Mars_MGS_MOLA_ClrShade_merge_global_463m",6,"jpg"],
-blend:["MOLA+HRSC shaded relief 200 m","Mars_MOLA_blend200ppx_HRSC_ClrShade_clon0dd_200mpp_lzw",7,"jpg"],
-themis:["THEMIS IR day 100 m","Mars_MO_THEMIS-IR-Day_mosaic_global_100m_v12_clon0_ly",8,"jpg"]};
-const SRV={trek:id=>`https://trek.nasa.gov/tiles/Mars/EQ/${id}/1.0.0/default/default028mm/`,api:id=>`https://api.nasa.gov/mars-wmts/catalog/${id}/1.0.0/default/default028mm/`};
-let miss=0,first="";const stat=()=>$("stat").textContent=miss?`${miss} tile(s) failed. First: ${first}`:"";
-function trek([n,id,nz,ex,sv]){const s=sv||$("srv").value,q=s=="api"?"?api_key=DEMO_KEY":"";
-const l=L.tileLayer(SRV[s](id)+`{z}/{y}/{x}.${ex}${q}`,{minZoom:0,maxZoom:18,maxNativeZoom:nz,noWrap:true,attribution:"NASA Mars Trek"});
-l.on("tileerror",e=>{miss++;if(!first)first=e.tile.src;stat()});return l}
-const map=L.map("map",{crs:L.CRS.EPSG4326,center:[18.45,77.43],zoom:8,minZoom:0,maxZoom:18});
-let base,ovl;
-$("ovl").add(new Option("None","none"));
-for(const k in LAY){$("base").add(new Option(LAY[k][0],k));$("ovl").add(new Option(LAY[k][0],k))}
-$("ovl").value="none";$("base").value="viking";
-const setBase=()=>{base&&map.removeLayer(base);base=trek(LAY[$("base").value]).addTo(map);base.bringToBack()};
-const setOvl=()=>{ovl&&map.removeLayer(ovl);ovl=null;const k=$("ovl").value;if(k!="none"){ovl=trek(LAY[k]).addTo(map);ovl.setOpacity($("oop").value/100)}};
-$("base").onchange=setBase;$("ovl").onchange=setOvl;$("oop").oninput=()=>ovl&&ovl.setOpacity($("oop").value/100);
-$("srv").onchange=()=>{miss=0;first="";stat();setBase();setOvl()};
-const probe=u=>new Promise(r=>{const i=new Image();i.onload=()=>r(true);i.onerror=()=>r(false);i.src=u});
-const tileUrl=(sv,id,ex,L)=>`${SRV[sv](id)}${L}/${Math.floor((90-LAND[0])/180*2**L)}/${Math.floor((LAND[1]+180)/360*2**(L+1))}.${ex}${sv=="api"?"?api_key=DEMO_KEY":""}`;
-async function tryLayer(id,svs,lv){for(const sv of svs)for(const ex of["png","jpg"]){if((await Promise.all(lv.map(L=>probe(tileUrl(sv,id,ex,L))))).includes(true)){
-const all=await Promise.all([...Array(19).keys()].map(L=>probe(tileUrl(sv,id,ex,L))));return{sv,ex,mx:all.lastIndexOf(true)}}}return null}
-function addLay(id,r,nm){const k="c"+Object.keys(LAY).length;LAY[k]=[nm||id,id,r.mx,r.ex,r.sv];$("base").add(new Option(nm||id,k));$("ovl").add(new Option(nm||id,k));$("ovl").value=k;$("oop").value=100;setOvl()}
-$("cadd").onclick=async()=>{const id=$("cid").value.trim();if(!id)return;$("stat").textContent="Searching for "+id+" ...";
-const r=await tryLayer(id,["trek","api"],[...Array(19).keys()]);if(r){addLay(id,r);$("stat").textContent=`Found ${id} on ${r.sv}.nasa.gov (.${r.ex}, max zoom ${r.mx}). Zoom in to Jezero.`}else $("stat").textContent=`"${id}" not found at Jezero on either server. Check the ID spelling.`};
-$("cauto").onclick=async()=>{const C=[];for(const p of["jezero","perseverance","mars2020","m2020","jezero_crater","mars2020_jezero"])for(const t of["ctx","hirise"])C.push(`${p}_${t}_mosaic`);
-const got=[];let n=0;for(const id of C){$("stat").textContent=`Auto-find ${++n}/${C.length}: ${id}`;const r=await tryLayer(id,["trek"],[7,10,12,14]);if(r){addLay(id,r);got.push(id)}}
-$("stat").textContent=got.length?`Added: ${got.join(", ")}. Zoom to Jezero and pick the overlay.`:"None of the guessed names exist. Use the ID method (DevTools Network tab)."};
-const LAND=[18.4446,77.4509];
-setBase();
-// ---- DEM (from make_dem.py)
-let D=null,sLay,hLay;
-const ramp=(t,a,b,c)=>{t=Math.max(0,Math.min(1,t));return(t<.5?a.map((v,i)=>v+(b[i]-v)*t*2):b.map((v,i)=>v+(c[i]-v)*(t-.5)*2)).map(Math.round)};
-const G=[40,170,70],Y=[240,210,40],Rd=[220,40,40];
-async function loadDEM(){try{const m=await (await fetch("dem.json")).json(),b=await (await fetch("dem.bin")).arrayBuffer(),Z=new Int16Array(b),w=m.w,h=m.h;
-const mid=(m.north+m.south)/2,cx=(m.east-m.west)/w*Math.PI/180*RM*1000*Math.cos(mid*Math.PI/180),cy=(m.north-m.south)/h*Math.PI/180*RM*1000;
-const S=new Float32Array(w*h).fill(-1),H=new Float32Array(w*h).fill(-1),ok=k=>Z[k]>-32768;
-for(let j=1;j<h-1;j++)for(let i=1;i<w-1;i++){const k=j*w+i,a=k-1,c=k+1,u=k-w,d=k+w;if(!(ok(k)&&ok(a)&&ok(c)&&ok(u)&&ok(d)))continue;
-const sl=Math.atan(Math.hypot((Z[c]-Z[a])/(2*cx),(Z[d]-Z[u])/(2*cy)))*57.2958,rg=Math.abs(Z[k]-(Z[a]+Z[c]+Z[u]+Z[d])/4);S[k]=sl;H[k]=Math.min(100,sl*5+rg*6)}
-D={...m,Z,S,H,cx,cy};const mk=(A,mx)=>{const c=document.createElement("canvas");c.width=w;c.height=h;const g=c.getContext("2d"),im=g.createImageData(w,h);
-for(let k=0;k<w*h;k++)if(A[k]>=0){im.data.set([...ramp(A[k]/mx,G,Y,Rd),255],k*4)}g.putImageData(im,0,0);return c.toDataURL()};
-const bd=[[m.south,m.west],[m.north,m.east]];sLay=L.imageOverlay(mk(S,20),bd,{zIndex:20});hLay=L.imageOverlay(mk(H,100),bd,{zIndex:20});
-map.fitBounds(bd);$("stat").textContent=`DEM loaded (${(m.cell_m||0).toFixed(0)} m cells).`;buildWB()}catch(e){$("stat").textContent="No dem.json/dem.bin: run make_dem.py. Route distance still works."}}
-let cLay;async function loadCTX(){try{const m=await(await fetch("ctx.json")).json();cLay=L.imageOverlay("ctx.png",[[m.south,m.west],[m.north,m.east]],{zIndex:10}).addTo(map);$("ctx").disabled=false;$("ctx").checked=true;
-$("ctx").onchange=()=>$("ctx").checked?cLay.addTo(map):map.removeLayer(cLay);$("cop").oninput=()=>cLay.setOpacity($("cop").value/100)}catch(e){}}
-const dop=()=>{[sLay,hLay].forEach(l=>l&&l.setOpacity($("dop").value/100))};
-const tog=(el,l)=>$(el).onchange=()=>{if(!l())return;$(el).checked?(l().addTo(map),dop()):map.removeLayer(l())};
-tog("sl",()=>sLay);tog("hz",()=>hLay);$("dop").oninput=dop;
-function at(a,lat,lon){if(!D)return null;const i=Math.floor((lon-D.west)/(D.east-D.west)*D.w),j=Math.floor((D.north-lat)/(D.north-D.south)*D.h);
-if(i<0||j<0||i>=D.w||j>=D.h)return null;const v=a[j*D.w+i];return v<=-32768||v<0&&a!==D.Z?null:v}
-// ---- POIs (approximate: verify against Trek / PDS)
-const POI=[["Landing site (Octavia E. Butler)",18.4446,77.4509,"Perseverance landing, Feb 2021"],["Delta front (Kodiak area)",18.46,77.36,"Layered delta sediments; CRISM clays"],["Séítah olivine unit",18.41,77.38,"Olivine-rich igneous rocks"],["Western delta top",18.47,77.31,"Fluvial deposits; carbonate/clay targets"]];
-POI.forEach(p=>L.circleMarker([p[1],p[2]],{radius:6,color:"#000",fillColor:"#ffd400",fillOpacity:1,weight:2}).addTo(map).bindTooltip(p[0]).bindPopup(`<b>${p[0]}</b><br>${p[3]}<br><i>Approximate position</i>`));
-// ---- route: least-effort routing on the DEM
-const CFG={mass:125,vflat:2,maxSlope:20,eva:6,plimit:469,shelter:60,base:60};
-const cw=i=>Math.max(.8,(((((280.5*i-58.7)*i-76.8)*i+51.9)*i+19.6)*i+2.5)); // J/kg/m, Minetti 2002 (Earth treadmill)
-const vel=i=>CFG.vflat/3.6*Math.exp(-3.5*Math.abs(i+.05)+.175); // m/s, Tobler-style slope penalty
-let pts=[],segs=[],WB=null,HOME=-1,wbLay,line=L.polyline([],{color:"#00e5ff",weight:4}).addTo(map),mkr=[];
-const hv=(a,b)=>{const r=Math.PI/180,dl=(b[0]-a[0])*r,dn=(b[1]-a[1])*r,x=Math.sin(dl/2)**2+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dn/2)**2;return 2*RM*Math.asin(Math.sqrt(x))};
-const cellLL=k=>[D.north-((k/D.w|0)+.5)/D.h*(D.north-D.south),D.west+((k%D.w)+.5)/D.w*(D.east-D.west)];
-const llCell=(la,lo)=>{const i=Math.floor((lo-D.west)/(D.east-D.west)*D.w),j=Math.floor((D.north-la)/(D.north-D.south)*D.h);return i<0||j<0||i>=D.w||j>=D.h?-1:j*D.w+i};
-const okc=k=>D.Z[k]>-32768&&D.S[k]>=0&&D.S[k]<=CFG.maxSlope;
-const ec=(a,b,dx,dy)=>{const d=Math.hypot(dx*D.cx,dy*D.cy),g=(D.Z[b]-D.Z[a])/d;return[CFG.mass*cw(g)*d,d/vel(g),d]};
-function dijk(src,rev,box){const{w,h}=D,n=w*h,E=new Float64Array(n).fill(Infinity),T=new Float64Array(n),P=new Int32Array(n).fill(-1),[x0,y0,x1,y1]=box||[0,0,w-1,h-1],hk=[],hq=[];
-const push=(k,v)=>{let i=hk.length;hk.push(k);hq.push(v);while(i>0){const p=(i-1)>>1;if(hk[p]<=k)break;hk[i]=hk[p];hq[i]=hq[p];i=p}hk[i]=k;hq[i]=v};
-const pop=()=>{const k=hk[0],v=hq[0],lk=hk.pop(),lq=hq.pop(),m=hk.length;if(m){let i=0;for(;;){let c=2*i+1;if(c>=m)break;if(c+1<m&&hk[c+1]<hk[c])c++;if(hk[c]>=lk)break;hk[i]=hk[c];hq[i]=hq[c];i=c}hk[i]=lk;hq[i]=lq}return[k,v]};
-E[src]=0;push(0,src);
-while(hk.length){const[k,u]=pop();if(k>E[u])continue;const ux=u%w,uy=(u/w)|0;
-for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const vx=ux+dx,vy=uy+dy;if(vx<x0||vx>x1||vy<y0||vy>y1)continue;const v=vy*w+vx;if(!okc(v))continue;
-const[e,t]=rev?ec(v,u,-dx,-dy):ec(u,v,dx,dy),ne=E[u]+e;if(ne<E[v]){E[v]=ne;T[v]=T[u]+t;P[v]=u;push(ne,v)}}}
-return{E,T,P}}
-function nearOK(la,lo,R=40){const c=llCell(la,lo);if(c<0)return-1;const w=D.w,cx=c%w,cy=(c/w)|0;let best=-1,bd=1e9;for(let dy=-R;dy<=R;dy++)for(let dx=-R;dx<=R;dx++){const x=cx+dx,y=cy+dy;if(x<0||y<0||x>=w||y>=D.h)continue;const k=y*w+x;if(okc(k)&&dx*dx+dy*dy<bd){bd=dx*dx+dy*dy;best=k}}return best}
-function drawWB(){if(!WB)return;const{w,h}=D,c=document.createElement("canvas");c.width=w;c.height=h;const g=c.getContext("2d"),im=g.createImageData(w,h),d=im.data,lim=CFG.shelter*60;
-for(let k=0;k<w*h;k++){let r=0,gg=0,b=0,a=0;if(D.Z[k]>-32768){if(WB.E[k]===Infinity){r=gg=b=20;a=150}else if(WB.T[k]<=lim){r=40;gg=200;b=80;a=45+90*WB.T[k]/lim}else{r=230;gg=50;b=40;a=110}}d[k*4]=r;d[k*4+1]=gg;d[k*4+2]=b;d[k*4+3]=a}
-g.putImageData(im,0,0);if(wbLay)map.removeLayer(wbLay);wbLay=L.imageOverlay(c.toDataURL(),[[D.south,D.west],[D.north,D.east]],{zIndex:15,opacity:.9});if($("wbz").checked)wbLay.addTo(map)}
-function buildWB(){HOME=nearOK(LAND[0],LAND[1]);if(HOME<0){$("stat").textContent="Landing site is outside the DEM.";return}
-$("stat").textContent="Computing walkback field ...";setTimeout(()=>{const keep=pts.slice();segs=[];pts=[];WB=dijk(HOME,true);drawWB();keep.forEach(p=>addSeg(p[0],p[1]));$("stat").textContent=`DEM + walkback ready (${(D.cell_m||0).toFixed(0)} m cells).`;rt()},30)}
-function addSeg(la,lo){if(!D||!WB){$("stat").textContent="DEM / walkback not ready yet.";return false}
-const from=segs.length?segs[segs.length-1].end:HOME,tc=llCell(la,lo);if(tc<0){$("stat").textContent="Outside the DEM area.";return false}
-const fx=from%D.w,fy=(from/D.w)|0,tx=tc%D.w,ty=(tc/D.w)|0,m=Math.max(60,Math.round(.6*Math.max(Math.abs(fx-tx),Math.abs(fy-ty)))),
-box=[Math.max(0,Math.min(fx,tx)-m),Math.max(0,Math.min(fy,ty)-m),Math.min(D.w-1,Math.max(fx,tx)+m),Math.min(D.h-1,Math.max(fy,ty)+m)],R=dijk(from,false,box);
-let best=-1,bd=1e9;for(let dy=-15;dy<=15;dy++)for(let dx=-15;dx<=15;dx++){const x=tx+dx,y=ty+dy;if(x<box[0]||x>box[2]||y<box[1]||y>box[3])continue;const k=y*D.w+x;if(R.E[k]<Infinity&&dx*dx+dy*dy<bd){bd=dx*dx+dy*dy;best=k}}
-if(best<0){$("stat").textContent="No walkable route there (steep terrain or no data).";return false}
-const path=[];for(let k=best;k!==-1;k=R.P[k])path.push(k);path.reverse();segs.push({path,end:best,snap:bd>0});pts.push(cellLL(best));return true}
-map.on("click",e=>{if(addSeg(e.latlng.lat,e.latlng.lng))rt()});
-map.on("mousemove",e=>{const z=at(D&&D.Z,e.latlng.lat,e.latlng.lng),s=at(D&&D.S,e.latlng.lat,e.latlng.lng);$("ro").textContent=`${e.latlng.lat.toFixed(4)}°N ${e.latlng.lng.toFixed(4)}°E`+(z!=null?` · ${z} m · ${s!=null?s.toFixed(1):"–"}°`:"")});
-$("undo").onclick=()=>{segs.pop();pts.pop();rt()};$("clr").onclick=()=>{segs=[];pts=[];rt()};
-$("p1").onclick=()=>{segs=[];pts=[];addSeg(18.46,77.36);rt()};
-$("wbz").onchange=()=>{if(!wbLay)return;$("wbz").checked?wbLay.addTo(map):map.removeLayer(wbLay)};
-$("shl").oninput=()=>{CFG.base=+$("shl").value;$("shv").textContent=CFG.base;applySW()};
-$("mass").onchange=$("vfl").onchange=()=>{CFG.mass=+$("mass").value||125;CFG.vflat=+$("vfl").value||2;if(D)buildWB()};
-function rt(){const pc=$("pf"),g=pc.getContext("2d");g.clearRect(0,0,pc.width,pc.height);mkr.forEach(m=>map.removeLayer(m));mkr=pts.map(p=>L.circleMarker(p,{radius:5,color:"#000",fillColor:"#00e5ff",fillOpacity:1}).addTo(map));
-const V=$("v");if(!segs.length){line.setLatLngs([]);$("rs").innerHTML="<small>Click the map to pick a destination. Routes start at the landing site.</small>";V.textContent="–";V.className="";$("vt").innerHTML="";$("stops").innerHTML="<small>None yet.</small>";return}
-const path=[];segs.forEach((s,i)=>s.path.forEach((k,j)=>{if(!(i&&!j))path.push(k)}));line.setLatLngs(path.map(cellLL));
-let d=0,E=0,T=0,gain=0,loss=0,ms=0,mh=0,pw=0;const cum=[0];
-for(let q=1;q<path.length;q++){const a=path[q-1],b=path[q],dx=(b%D.w)-(a%D.w),dy=((b/D.w)|0)-((a/D.w)|0),[e,t,dd]=ec(a,b,dx,dy),dz=D.Z[b]-D.Z[a];d+=dd;E+=e;T+=t;dz>0?gain+=dz:loss-=dz;cum.push(d)}
-for(const k of path){ms=Math.max(ms,D.S[k]);mh=Math.max(mh,D.H[k]);pw=Math.max(pw,WB.T[k])}
-const end=path[path.length-1],rT=WB.T[end],rE=WB.E[end],totT=T+rT,totE=E+rE,P=totE/Math.max(totT,1),hrs=totT/3600,dose=.64*hrs/24,hz=Math.min(100,mh+(+$("dust").value==2?8:0));
-const chk=[[ms<=CFG.maxSlope,`Max slope ${ms.toFixed(1)}° (never exceed ${CFG.maxSlope}°)`],[pw/60<=CFG.shelter,`Furthest point ${(pw/60).toFixed(0)} min from habitat (limit ${CFG.shelter})`],[hrs<=CFG.eva,`Out and back ${hrs.toFixed(1)} h (EVA limit ${CFG.eva} h)`],[P<=CFG.plimit,`Average effort ${P.toFixed(0)} W (reference ${CFG.plimit} W)`],[hz<=60&&ms<=15,`Peak hazard ${hz.toFixed(0)}, steepest ${ms.toFixed(1)}° (caution above 60 / 15°)`]];
-const hard=!(chk[0][0]&&chk[1][0]&&chk[2][0]),soft=!(chk[3][0]&&chk[4][0]);
-V.className=hard?"ng":soft?"ca":"go";V.textContent=hard?"NO-GO":soft?"CAUTION":"GO";
-$("vt").innerHTML=chk.map(c=>`${c[0]?"✓":"✗"} ${c[1]}`).join("<br>")+(segs.some(s=>s.snap)?"<br>Destination moved to nearest walkable ground.":"");
-$("rs").innerHTML=`<div><b>${(d/1000).toFixed(2)} km</b><small>route length</small></div><div><b>${(T/3600).toFixed(1)} h / ${(rT/3600).toFixed(1)} h</b><small>out / walkback</small></div><div><b>${(totE/1000).toFixed(0)} kJ</b><small>effort, out and back</small></div><div><b>+${gain.toFixed(0)} / −${loss.toFixed(0)} m</b><small>climb / descent</small></div><div><b>${dose.toFixed(2)} mSv</b><small>baseline cosmic dose</small></div><div><b>${(pw/60).toFixed(0)} min</b><small>max time from habitat</small></div>`;
-const zs=path.map(k=>D.Z[k]),z0=Math.min(...zs)-5,z1=Math.max(...zs)+5,w=pc.width,h=pc.height;
-for(let q=1;q<path.length;q++){const X=i=>cum[i]/Math.max(d,1)*(w-16)+8,Yy=i=>h-12-(zs[i]-z0)/(z1-z0)*(h-24);g.strokeStyle=`rgb(${ramp(WB.T[path[q]]/60/CFG.shelter,G,Y_,Rd)})`;g.lineWidth=4;g.beginPath();g.moveTo(X(q-1),Yy(q-1));g.lineTo(X(q),Yy(q));g.stroke()}
-g.fillStyle="#999";g.font="11px sans-serif";g.fillText(z1.toFixed(0)+" m (colour = time from habitat)",6,10);g.fillText(z0.toFixed(0)+" m",6,h-1);
-const hit=POI.map(p=>({p,m:Math.min(...path.filter((_,i)=>i%4==0).map(k=>hv(cellLL(k),[p[1],p[2]])))})).filter(o=>o.m<=1.5).sort((a,b)=>a.m-b.m);
-$("stops").innerHTML=hit.length?hit.map(o=>`<div><b>${o.p[0]}</b> <small>${o.m.toFixed(1)} km off route</small><br><small>${o.p[3]}</small></div>`).join(""):"<small>No stops near this route.</small>"}
-// ---- space weather (Mars-directed CME alerts from NASA CCMC DONKI)
-const DON="https://ccmc.gsfc.nasa.gov/DONKI-API/get/WSAEnlilSimulations";
-const MULT={quiet:1,watch:.5,warn:.15},LVL={quiet:["QUIET","go"],watch:["WATCH","ca"],warn:["WARNING","ng"]};
-let SW={runs:null,src:"",arr:[]};
-function swLevel(){const m=$("swm").value,now=Date.now();
-if(m=="watch")return{l:"watch",why:"Simulated: Mars-directed CME predicted in about 48 h."};
-if(m=="warn")return{l:"warn",why:"Simulated: Mars-directed CME predicted in about 10 h."};
-if(!SW.runs)return{l:"quiet",why:"No feed reachable. Run fetch_donki.py (snapshot) or check your connection. Showing baseline."};
-let best=null;for(const a of SW.arr){const h=(a.t-now)/36e5;if(h>=-12&&h<=72&&(!best||Math.abs(h)<Math.abs(best.h)))best={h,a}}
-if(!best)return{l:"quiet",why:`No Mars-directed CME arrival predicted in the next 72 h (${SW.src}).`};
-return{l:best.h<=24?"warn":"watch",why:`CME arrival at Mars ${best.h>=0?"in":"was"} ${Math.abs(best.h).toFixed(0)} h${best.a.gb?" (glancing blow)":""} (${SW.src}).`}}
-function applySW(){const{l,why}=swLevel(),b=$("swb");b.textContent=LVL[l][0];b.className="bd "+LVL[l][1];CFG.shelter=Math.max(5,Math.round(CFG.base*MULT[l]));
-$("swt").innerHTML=`${why}<br>Effective shelter limit <b>${CFG.shelter} min</b> (baseline ${CFG.base} × ${MULT[l]}; assumed rule, mission policy decides).`+(l!="quiet"?"<br>Reference: the May 2024 storm gave Curiosity RAD about 8.1 mGy in one event.":"");
-if(D&&WB){drawWB();rt()}}
-async function loadSW(){const iso=d=>d.toISOString().slice(0,10),en=new Date(),st=new Date(en-25*864e5);let data=null,src="";
-try{const r=await fetch(`${DON}?startDate=${iso(st)}&endDate=${iso(en)}`);if(!r.ok)throw 0;data=await r.json();src="live CCMC feed"}
-catch(e){try{const r=await fetch("donki_mars.json");if(!r.ok)throw 0;const j=await r.json();data=j.runs;src="snapshot from "+(j.fetched||"?")}catch(e2){}}
-if(Array.isArray(data)){SW.runs=data;SW.src=src;SW.arr=data.flatMap(r=>(r.impactList||[]).filter(i=>/mars/i.test(i.location||"")&&i.arrivalTime).map(i=>({t:Date.parse(i.arrivalTime.endsWith("Z")?i.arrivalTime:i.arrivalTime+"Z"),gb:i.isGlancingBlow}))).filter(a=>!isNaN(a.t))}
-applySW()}
-const Y_=[240,210,40];
-function cond(){const t=+$("tod").value,d=+$("dust").value,hh=Math.floor(t),mm=Math.round((t-hh)*60)%60;$("tl").textContent=String(hh).padStart(2,"0")+":"+String(mm).padStart(2,"0");
-const T=[-45,-50,-58][d]+[40,32,14][d]*Math.cos(2*Math.PI*(t-14)/24),up=t>=6&&t<=17.67;
-$("cd").innerHTML=`<div><b>${T.toFixed(0)} °C</b><small>air temp</small></div><div><b>~7 mbar</b><small>pressure</small></div><div><b>${up?"Sun up":"Night"}</b><small>sunset ≈ 17:40</small></div><div><b>τ ${[.5,1.2,3.5][d]}</b><small>dust opacity</small></div><div><b>≈0.65 mSv/day</b><small>surface radiation</small></div><div><b>${T<-70?"Cold risk":d==2?"Low light":"OK"}</b><small>suit check</small></div>`;rt()}
-$("zj").onclick=()=>D?map.fitBounds([[D.south,D.west],[D.north,D.east]]):map.setView([18.45,77.43],11);
-$("tod").oninput=$("dust").onchange=cond;cond();loadDEM();loadCTX();$("swm").onchange=applySW;loadSW();setInterval(loadSW,18e5);
-(async()=>{const L2=[["JEZ_ctx_B_soc_008_orthoMosaic_6m_Eqc_latTs0_lon0","CTX Jezero ortho 6 m (Mars 2020 TRN)"],["Jezero_CTX_BlockAdj_dd","CTX Jezero controlled mosaic (wider)"]],ok=[];
-for(const[id,nm]of L2){const r=await tryLayer(id,["trek"],[...Array(19).keys()]);if(r){addLay(id,r,nm);ok.push(`${nm} (max zoom ${r.mx})`)}}
-$("stat").textContent=ok.length?`Loaded: ${ok.join("; ")}. Pick other layers in Overlay.`:"CTX Jezero tiles did not respond; Viking imagery shown."})();
-</script></body></html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Walkback · Mars EVA planner</title>
+<meta name="description" content="Walkback: the Mars EVA planner that always knows the way home. A layered, integrated Marswalk route planner for Jezero crater built on NASA data.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#120c09">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="css/app.css">
+<script type="importmap">{ "imports": { "three": "./vendor/three/three.module.min.js" } }</script>
+</head>
+<body data-mode="plan" data-view="2d">
+<header id="top">
+  <div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M9 21c3-8 7-11 14-11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M19 7l4 3-3 4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div><b>Walkback</b><span>Mars EVA planner that always knows the way home</span></div></div>
+  <nav class="modes" role="tablist" aria-label="Mode">
+    <button role="tab" data-mode="plan" aria-selected="true">Plan</button>
+    <button role="tab" data-mode="go">Go</button>
+    <button role="tab" data-mode="abort" class="abort">Abort</button>
+  </nav>
+  <div class="tools">
+    <button id="view3d" class="ghost" title="Toggle 2D / 3D view (V)">3D</button>
+    <button id="demo" class="ghost" title="Run the demo scenario">▶ Demo</button>
+    <span id="net" class="pill" title="Data status">…</span>
+  </div>
+</header>
+
+<main id="main">
+  <section id="stage">
+    <div id="map" aria-label="Marswalk map"></div>
+    <div id="view3" hidden></div>
+    <div id="ro" aria-live="off">hover the map</div>
+    <div id="legend" class="legend"></div>
+    <div id="caption" hidden></div>
+    <!-- Go / Abort HUD -->
+    <div id="hud" hidden>
+      <div class="hud-row">
+        <div class="hud-cell"><small>EVA clock</small><b id="h-clock">–</b></div>
+        <div class="hud-cell"><small>To shelter now</small><b id="h-wb">–</b></div>
+        <div class="hud-cell"><small>Allowed now</small><b id="h-lim">–</b></div>
+        <div class="hud-cell"><small>Margin</small><b id="h-mar">–</b></div>
+      </div>
+      <div class="hud-row">
+        <div class="hud-cell wide"><small>Next</small><b id="h-next">–</b></div>
+        <div class="hud-cell"><small>Space weather</small><b id="h-sw">–</b></div>
+      </div>
+      <label class="hud-slider">Position along plan (simulated) <input id="goT" type="range" min="0" max="1000" value="0" aria-label="Simulated EVA time"></label>
+      <div class="hud-row">
+        <button id="goPlay" class="big">▶ Walk</button>
+        <button id="goAbort" class="big danger">ABORT · walk back</button>
+      </div>
+    </div>
+    <div id="abortCard" hidden>
+      <h2>Walk back now</h2>
+      <div class="hud-row">
+        <div class="hud-cell"><small>ETA to shelter</small><b id="a-eta">–</b></div>
+        <div class="hud-cell"><small>Buddy-assisted ETA</small><b id="a-eta2">–</b></div>
+        <div class="hud-cell"><small>Distance</small><b id="a-dist">–</b></div>
+        <div class="hud-cell"><small>Heading</small><b id="a-head">–</b></div>
+      </div>
+      <p id="a-note" class="mut"></p>
+      <div class="hud-row"><button id="abortResume" class="big">Back to Go</button></div>
+    </div>
+  </section>
+
+  <aside id="side" aria-label="Planner">
+    <!-- current conditions -->
+    <section class="card" id="c-now">
+      <h2>Current conditions · <span id="siteName">Jezero</span></h2>
+      <div class="kv" id="nowKv"></div>
+      <div class="sw">
+        <span id="swb" class="badge">–</span>
+        <select id="swm" aria-label="Space weather scenario">
+          <option value="live">Live NASA CCMC feed</option>
+          <option value="quiet">Scenario: Quiet</option>
+          <option value="watch">Scenario: Watch (CME in ~48 h)</option>
+          <option value="warning">Scenario: Warning (CME in ~10 h)</option>
+        </select>
+      </div>
+      <p id="swt" class="mut small"></p>
+    </section>
+
+    <!-- verdict -->
+    <section class="card" id="c-verdict">
+      <div class="verdict-row"><span id="v" class="verdict">–</span><div><b id="vTitle">Planning…</b><small id="vBind" class="mut"></small></div></div>
+      <ul id="checks" class="checks"></ul>
+      <div id="dropped" class="dropped"></div>
+    </section>
+
+    <!-- plan controls -->
+    <section class="card" id="c-plan">
+      <h2>Marswalk plan</h2>
+      <div class="row"><label for="start">EVA start (local solar time) <b id="startV">09:00</b></label><input id="start" type="range" min="6" max="16" step="0.25" value="9"></div>
+      <div class="row"><label for="case">Effort &amp; pace case</label>
+        <select id="case"><option value="low">Low (optimistic)</option><option value="central" selected>Central</option><option value="high">High (pessimistic)</option></select></div>
+      <div class="row"><label for="radlim">Radiation shelter limit override</label>
+        <select id="radlim"><option value="">From space weather</option><option value="none">None</option><option value="120">120 min</option><option value="90">90 min</option><option value="60">60 min</option><option value="30">30 min</option><option value="15">15 min</option></select></div>
+      <div class="stats" id="planStats"></div>
+      <h3>Timeline</h3>
+      <ol id="timeline" class="timeline"></ol>
+      <h3>Walk-back margin <small class="mut">time to shelter vs what the limits allow</small></h3>
+      <canvas id="wbChart" width="640" height="220" aria-label="Walk-back margin chart"></canvas><div class="chart-legend"></div>
+      <h3>Elevation profile</h3>
+      <canvas id="profChart" width="640" height="140" aria-label="Elevation profile"></canvas>
+    </section>
+
+    <!-- science objectives and stops -->
+    <section class="card" id="c-targets">
+      <h2>Science objectives &amp; stops</h2>
+      <div id="objectives"></div>
+    </section>
+
+    <!-- conditions / weather window -->
+    <section class="card" id="c-window">
+      <h2>Best EVA window <small class="mut">MEDA climatology for this season</small></h2>
+      <canvas id="tempChart" width="640" height="200" aria-label="Temperature and daylight chart"></canvas>
+      <p id="windowNote" class="mut small"></p>
+    </section>
+
+    <!-- sensitivity -->
+    <section class="card" id="c-sens">
+      <h2>Sensitivity <small class="mut">does the plan survive the model's uncertainty?</small></h2>
+      <table class="sens" id="sens"></table>
+      <p class="mut small">Same route and stops, re-checked with each effort/pace case. Effort is an index from Earth data, not a flight value.</p>
+    </section>
+
+    <!-- layers -->
+    <section class="card" id="c-layers">
+      <h2>Layered, integrated view</h2>
+      <div class="row"><label for="base">Base map</label><select id="base"></select></div>
+      <div id="overlays" class="overlays"></div>
+      <div class="row"><label for="ovOp">Overlay opacity</label><input id="ovOp" type="range" min="10" max="100" value="65"></div>
+      <p class="mut small" id="layerNote"></p>
+    </section>
+
+    <!-- evidence -->
+    <section class="card" id="c-found">
+      <h2>What Walkback found at Jezero</h2>
+      <div id="found"><small class="mut">Computing…</small></div>
+    </section>
+
+    <!-- backtest -->
+    <section class="card" id="c-backtest">
+      <h2>Perseverance backtest</h2>
+      <div id="backtest"><small class="mut">Loading…</small></div>
+    </section>
+
+    <!-- exports -->
+    <section class="card" id="c-export">
+      <h2>Export plan</h2>
+      <div class="row btns"><button id="exGeo">GeoJSON</button><button id="exGpx">GPX</button><button id="exCard">Print EVA card (PDF)</button></div>
+      <p class="mut small">Open formats so the plan can go into other GIS and EVA tools.</p>
+    </section>
+
+    <!-- assumptions -->
+    <details class="card" id="c-assume">
+      <summary><h2>Assumptions, limits &amp; sources</h2></summary>
+      <div id="assume"></div>
+    </details>
+    <footer class="credits" id="credits"></footer>
+  </aside>
+</main>
+<div id="printCard" hidden></div>
+<script src="vendor/leaflet/leaflet.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

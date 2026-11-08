@@ -1,0 +1,9 @@
+{
+  "name": "Walkback: Mars EVA planner",
+  "short_name": "Walkback",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#120c09",
+  "theme_color": "#120c09",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}
