@@ -200,7 +200,7 @@ export async function create3D(el, S) {
   // the EVA pair (buddy rule): crew 1 orange band, crew 2 cyan band
   const crew = [makeAstronaut(0xff8c4a), makeAstronaut(0x3dd9ff)];
   crew.forEach((c) => { c.root.visible = false; scene.add(c.root); c.prev = null; c.yaw = null; });
-  const BUDDY_LAG_S = 8, BUDDY_SIDE_M = 1.8; // buddy walks ~4 m behind and to the side, on the same path
+  const BUDDY_LAG_S = 2, BUDDY_SIDE_M = 2.2; // buddy walks about 1 m behind and 2 m to the side, on the same path
 
   // ---- walking path: the planner's 40 m grid route, smoothed so people walk curves instead of a
   // staircase. Points where the crew stands still (science stops, leg joins) stay fixed.
