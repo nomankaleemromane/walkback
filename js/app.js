@@ -146,9 +146,14 @@ function planFor({ level, caseName = S.caseName, start = S.startLtst, limit } = 
   const sunset = bin && bin.sunset_ltst ? bin.sunset_ltst : sunriseSunset(S.site.habitat[0], mt.declDeg).set;
   const K = makeConstraints(S.policy, ec, { startLtst: start, sunsetLtst: sunset, radLimitMin: lim });
   const legs = legsFor(lim, ec);
-  const best = solve(legs, S.targets, K);
+  const required = S.targets.map((t, i) => (t.pinned && t.enabled !== false ? i + 1 : 0)).filter(Boolean);
+  let best = solve(legs, S.targets, K, { required }), pinMissed = [];
+  if (required.length && !best.order.length) { // pinned stops can't all fit: plan the rest, report which ones
+    best = solve(legs, S.targets, K);
+    pinMissed = required.filter((j) => !best.order.includes(j));
+  }
   const plan = best.order.length ? evaluate(S.T, S.WB, legs, S.targets, best.order, K, S.policy) : null;
-  return { plan, K, legs, ec, lim, sunset, best };
+  return { plan, K, legs, ec, lim, sunset, best, pinMissed };
 }
 
 let recomputeTimer = 0;
@@ -158,7 +163,7 @@ export function recompute(now = false) {
   const sw = swState();
   S.swNow = sw;
   const r = planFor({ level: sw.level });
-  Object.assign(S, { plan: r.plan, K: r.K, legs: r.legs, ec: r.ec, lim: r.lim, sunset: r.sunset });
+  Object.assign(S, { plan: r.plan, K: r.K, legs: r.legs, ec: r.ec, lim: r.lim, sunset: r.sunset, pinMissed: r.pinMissed });
   // sensitivity: same order under the other cases
   const sens = {};
   for (const c of ["low", "central", "high"]) {
@@ -173,6 +178,10 @@ export function recompute(now = false) {
   const endL = S.startLtst + (r.plan ? r.plan.totalS / 3600 / SOL_H : 0);
   const tr = tempRange(bin, S.meda.hours_ltst, S.startLtst, endL);
   S.verdict = verdict(r.plan, r.K, { policy: S.policy, level: sw.level, sensitivity: sens, coldC: tr ? tr.lo : null });
+  for (const j of r.pinMissed) { // a must-visit stop that the limits rule out
+    S.verdict.checks.push({ level: "caution", key: "pin", text: `Must-visit stop “${S.targets[j - 1].name}” can't be included: ${reasonFor(j)[1]}.` });
+    if (S.verdict.verdict === "GO") S.verdict.verdict = "CAUTION";
+  }
   // quiet reference plan to explain what a storm removes
   S.quietPlan = planFor({ level: "quiet", limit: null }).plan;
   renderAll();
@@ -279,11 +288,20 @@ function onMapClick(ll) {
   L.popup().setLatLng(ll).setContent(`<b>${ll.lat.toFixed(4)}°N ${ll.lng.toFixed(4)}°E</b><br>${esc(explainCell(S.T, k, S.traffic))}<br>Terrain hazard ${(S.T.H[k] * 100).toFixed(0)}/100 · ${S.T.pass[k] ? "walkable" : "<b>impassable</b>"} · confidence ${["", "low (DEM only)", "medium (DEM + TI)", "high (DEM + TI + geology)"][S.T.conf[k]]}<br>Walk-back to shelter: <b>${isFinite(wb) ? mins(wb / v) : "no route"}</b><br><button id="addStop">Add as science stop</button>`).openOn(S.M.map);
   setTimeout(() => { const b = $("addStop"); if (b) b.onclick = () => { addCustomStop(ll); S.M.map.closePopup(); }; });
 }
+function toast(html, kind = "ok") {
+  let el = $("toast");
+  if (!el) { el = document.createElement("div"); el.id = "toast"; el.setAttribute("role", "status"); $("stage").appendChild(el); }
+  el.className = kind; el.innerHTML = html; el.hidden = false;
+  clearTimeout(S.toastT); S.toastT = setTimeout(() => (el.hidden = true), 4500);
+}
 function addCustomStop(ll) {
   const n = S.targets.filter((t) => t.custom).length + 1;
-  S.targets.push({ id: "custom" + n, name: `Custom stop ${n}`, lat: ll.lat, lon: ll.lng, objective: "X", priority: 5, station_min: S.policy.params.station_min.value, rationale: "Added by the planner.", position_source: "Picked on the map.", approximate: false, pov: [], custom: true, enabled: true });
+  S.targets.push({ id: "custom" + n, name: `Custom stop ${n}`, lat: ll.lat, lon: ll.lng, objective: "X", priority: 8, station_min: S.policy.params.station_min.value, rationale: "Added by the planner.", position_source: "Picked on the map.", approximate: false, pov: [], custom: true, enabled: true, pinned: true });
   S.cells.push(nearestPassable(S.T, llToCell(S.T, ll.lat, ll.lng)));
-  S.legsCache.clear(); renderTargets(); recompute();
+  S.legsCache.clear(); renderTargets(); recompute(true);
+  const i = S.targets.length - 1, k = S.plan ? S.plan.order.indexOf(i + 1) : -1;
+  toast(k >= 0 ? `Added <b>Custom stop ${n}</b>: it is stop ${k + 1} of the plan.` : `Added <b>Custom stop ${n}</b>, but it can't fit: ${esc(reasonFor(i + 1)[1])}.`, k >= 0 ? "ok" : "warn");
+  openStop(i);
 }
 export const startCell = () => (S.roverOn && S.fromRover && S.rover >= 0 ? S.rover : S.home);
 function defaultRover() { // halfway to the farthest target
@@ -496,7 +514,7 @@ function renderTargets() {
         <input type="checkbox" ${t.enabled ? "checked" : ""} data-en="${i}" aria-label="Include ${esc(t.name)}">
         <div class="nm"><div class="nm1"><b data-open="${i}" tabindex="0" role="button">${esc(t.name)}</b><span class="chip" id="chip-${i}">–</span></div>
           <small>${t.sample ? `Perseverance sample “${esc(t.sample)}”, sol ${t.sample_sol}` : "custom"}</small>
-          <div class="nm2"><label>priority <input class="prio" type="number" min="1" max="10" value="${t.priority}" data-pr="${i}"></label><label>on station <input class="prio" type="number" min="5" max="120" step="5" value="${t.station_min}" data-sm="${i}"> min</label></div></div>
+          <div class="nm2"><label>priority <input class="prio" type="number" min="1" max="10" value="${t.priority}" data-pr="${i}"></label><label>on station <input class="prio" type="number" min="5" max="120" step="5" value="${t.station_min}" data-sm="${i}"> min</label><label class="pin"><input type="checkbox" data-pin="${i}" ${t.pinned ? "checked" : ""}> must visit</label>${t.custom ? `<button class="rm" data-rm="${i}">Remove</button>` : ""}</div></div>
         <div class="tg-detail">${esc(t.rationale)}<br><small>${esc(t.position_source)}</small>${t.pov && t.pov.length ? `<div class="pov">${t.pov.map((p) => `<figure><a href="${esc(p.page || p.source_url)}" target="_blank" rel="noopener"><img loading="lazy" src="${BASE}/${esc(p.file)}" alt="Perseverance ${esc(p.camera)} image, sol ${p.sol}"></a><figcaption>${esc(p.camera)} · sol ${p.sol} · ${esc(p.credit)}</figcaption></figure>`).join("")}</div><small>Raw Perseverance images near this stop (point-of-view at the destination).</small>` : ""}</div>
       </div>`).join("") + "</div>";
   }).join("");
@@ -506,10 +524,13 @@ function renderTargets() {
     if (d.en) S.targets[+d.en].enabled = e.target.checked;
     if (d.pr) S.targets[+d.pr].priority = Math.max(1, Math.min(10, +e.target.value || 1));
     if (d.sm) { S.targets[+d.sm].station_min = Math.max(5, +e.target.value || 20); }
+    if (d.pin) { S.targets[+d.pin].pinned = e.target.checked; if (e.target.checked) S.targets[+d.pin].enabled = true; renderTargets(); }
     recompute();
   };
   box.onkeydown = (e) => { if (e.key === "Enter" && e.target.dataset.open) e.target.click(); };
   box.onclick = (e) => {
+    const rm = e.target.closest("[data-rm]")?.dataset.rm;
+    if (rm != null) { S.targets.splice(+rm, 1); S.cells.splice(+rm, 1); S.legsCache.clear(); renderTargets(); recompute(); toast("Custom stop removed."); return; }
     const i = e.target.closest("[data-open]")?.dataset.open;
     if (i == null || e.target.tagName === "INPUT") return;
     const el = $("tg-" + i); el.classList.toggle("open");

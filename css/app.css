@@ -168,6 +168,9 @@ body[data-mode=go] .legend, body[data-mode=abort] .legend { display: none; }
 #caption { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); z-index: 900; background: rgba(8,5,4,.92); border: 1px solid var(--acc); padding: 12px 18px; border-radius: 12px; font-size: 16px; line-height: 1.45; width: max-content; max-width: min(700px, calc(100% - 28px)); text-align: center; box-shadow: 0 8px 30px rgba(0,0,0,.5); }
 #caption b { color: var(--acc2); }
 @media (min-width: 1081px) { body[data-mode=go] #caption, body[data-mode=abort] #caption { left: calc(50% - 214px); max-width: min(640px, calc(100% - 470px)); } }
+#toast { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 950; background: rgba(8,5,4,.95); border: 1px solid var(--go); color: var(--fg); padding: 10px 16px; border-radius: 10px; font-size: 14px; max-width: min(560px, calc(100% - 28px)); box-shadow: 0 8px 30px rgba(0,0,0,.5); }
+#toast.warn { border-color: var(--ca); } #toast[hidden] { display: none; }
+.nm2 .pin { color: var(--acc2); } .nm2 .rm { min-height: 0; padding: 1px 8px; font-size: 12px; }
 #loading { position: absolute; inset: 0; z-index: 950; display: grid; place-content: center; justify-items: center; gap: 12px; background: radial-gradient(circle at 50% 45%, #2a160c, #0b0706 70%); color: var(--mut); }
 #loading[hidden] { display: none; }
 .spin { width: 44px; height: 44px; border-radius: 50%; border: 4px solid #3a2a22; border-top-color: var(--acc); animation: spin 1s linear infinite; }

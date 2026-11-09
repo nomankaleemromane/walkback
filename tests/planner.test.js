@@ -69,3 +69,13 @@ test("verdict: warning policy -> NO-GO; empty plan -> NO-GO; quiet short plan is
   assert.equal(verdict(null, K, { policy, level: "quiet" }).verdict, "NO-GO");
   assert.notEqual(verdict(plan, K, { policy, level: "quiet" }).verdict, "NO-GO");
 });
+
+test("must-visit stops are always included when they fit, even with low priority", () => {
+  const { legs } = buildLegs(T, WB, cells, { hazW: 0 });
+  const K = makeConstraints(policy, ec, { startLtst: 14.5, sunsetLtst: 18, radLimitMin: null });
+  const free = solve(legs, targets, K);
+  const low = targets.map((t) => ({ ...t, priority: t.id === "a" ? 1 : t.priority }));
+  const pinned = solve(legs, low, K, { required: [1] });
+  assert.ok(pinned.order.includes(1));
+  assert.ok(pinned.value <= free.value + 9);
+});
