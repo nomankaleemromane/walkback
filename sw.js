@@ -1,7 +1,7 @@
 // Walkback service worker: offline-first. Earth-Mars signal delay is minutes, so the crew
 // tool must work with no connection. App shell + site data are pre-cached; NASA Trek tiles
 // are cached as you browse (cache-first, capped); the DONKI feed is network-first.
-const VERSION = "walkback-v8";
+const VERSION = "walkback-v9";
 const SHELL = [
 "./",
 "index.html",
@@ -15,6 +15,7 @@ const SHELL = [
 "vendor/three/three.module.min.js",
 "vendor/three/OrbitControls.js",
 "js/app.js",
+"js/astronaut.js",
 "js/charts.js",
 "js/demo.js",
 "js/export.js",

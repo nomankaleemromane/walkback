@@ -5,6 +5,7 @@ import { OrbitControls } from "../vendor/three/OrbitControls.js";
 import { marsTime, sunElevation, sunAzimuth, fmtH } from "./marstime.js";
 import { rasterURL, walkbackColor, hazardColor } from "./map2d.js";
 import { allowed } from "./charts.js";
+import { makeAstronaut } from "./astronaut.js";
 
 const SOL_H = 1.0275;
 
@@ -23,7 +24,10 @@ export async function create3D(el, S) {
     <div class="v3-bar">
       <select id="v3tex" aria-label="3D surface layer"><option value="ctx">CTX image</option><option value="wb">CTX + walk-back zone</option><option value="hz">CTX + terrain hazard</option></select>
       <select id="v3ex" aria-label="Vertical exaggeration"><option value="1">1× height</option><option value="2" selected>2× height</option><option value="4">4× height</option></select>
-      <button id="v3pov">👁 Astronaut view</button><button id="v3play">▶ Walk route</button><button id="v3over">Overview</button>
+      <button id="v3pov">🧑‍🚀 Astronaut view</button>
+      <select id="v3cam" aria-label="Camera"><option value="follow">Follow camera</option><option value="eye">First person</option></select>
+      <select id="v3speed" aria-label="Playback speed"><option value="1">Real time</option><option value="10">10× speed</option><option value="60" selected>60× speed</option><option value="150">150× speed</option></select>
+      <button id="v3play">▶ Walk route</button><button id="v3over">Overview</button>
     </div>
     <div class="v3-hud" id="v3hud" hidden></div>
     <div class="v3-note">Terrain: 20 m CTX DTM (USGS), texture: 6 m CTX ortho resampled to ~12 m/px. Not photorealistic at eye level.</div>`);
@@ -31,6 +35,8 @@ export async function create3D(el, S) {
   st.textContent = `#view3 .v3-bar{position:absolute;top:10px;left:10px;z-index:5;display:flex;gap:6px;flex-wrap:wrap}
   #view3 .v3-hud{position:absolute;top:56px;left:10px;z-index:5;background:#000c;border:1px solid #ff9a5c;border-radius:10px;padding:8px 12px;font:15px/1.45 system-ui;min-width:250px}
   #view3 .v3-hud b{font-size:18px;color:#ffd166} #view3 .v3-hud .warn{color:#ff8a80;font-weight:700}
+  #view3 .v3-hud .act{display:block;margin:-2px 0 6px;padding:5px 9px;border-radius:7px;background:#1e1511;border:1px solid #4a372c;font-size:15px}
+  #view3 .v3-hud .act b{font-size:15px;color:#fff} #view3 .v3-hud .act.st{background:#3a2d12;border-color:#6b5520}
   #view3 .v3-note{position:absolute;right:10px;bottom:8px;z-index:5;font-size:11px;color:#ccc;background:#0008;padding:2px 6px;border-radius:4px;max-width:60%}`;
   el.appendChild(st);
 
@@ -117,7 +123,8 @@ export async function create3D(el, S) {
     const pts = [];
     for (let i = 0; i < cells.length; i++) { const [x, z] = cellXZ(cells[i]); pts.push(new THREE.Vector3(x, surfaceY(x, z) + lift, z)); }
     const curve = new THREE.CatmullRomCurve3(pts, false, "centripetal");
-    return new THREE.Mesh(new THREE.TubeGeometry(curve, Math.min(2000, pts.length * 3), r, 6, false), new THREE.MeshBasicMaterial({ color }));
+    const thin = r < 1; // astronaut view: a slim, slightly see-through guide line on the ground
+    return new THREE.Mesh(new THREE.TubeGeometry(curve, Math.min(2000, pts.length * 3), r, 6, false), new THREE.MeshBasicMaterial({ color, transparent: thin, opacity: thin ? 0.7 : 1 }));
   };
   const label = (text, color = "#fff") => {
     const c = document.createElement("canvas"), g = c.getContext("2d"); g.font = "bold 44px system-ui";
@@ -130,7 +137,7 @@ export async function create3D(el, S) {
   function rebuild() {
     group.clear();
     const p = S.plan, pv = mode === "pov";
-    const r = tube(p && p.path, 0x33d6ff, pv ? 0.35 : 7, pv ? 0.4 : 4); if (r) group.add(r);
+    const r = tube(p && p.path, 0x33d6ff, pv ? 0.09 : 7, pv ? 0.12 : 4); if (r) group.add(r);
     if (S.mode === "abort" && S.abortLine) {
       const c = S.abortCell >= 0 ? S.abortCell : null;
       if (c != null) { const path = []; for (let k = c, g2 = 0; k !== -1 && g2 < 1e5; k = S.WB.P[k], g2++) path.push(k); const a = tube(path, 0xff5a4f, pv ? 0.45 : 9, pv ? 0.5 : 4); if (a) group.add(a); }
@@ -138,9 +145,17 @@ export async function create3D(el, S) {
     S.targets.forEach((t, i) => {
       const k = S.cells[i]; if (k < 0) return;
       const [x, z] = cellXZ(k), y = surfaceY(x, z), inPlan = p && p.order.includes(i + 1);
-      const ph = pv ? 25 : inPlan ? 260 : 120;
-      const pole = new THREE.Mesh(new THREE.CylinderGeometry(pv ? 0.8 : 6, pv ? 0.8 : 6, ph, 8), new THREE.MeshBasicMaterial({ color: objCol[t.objective] || 0xffffff, transparent: !inPlan, opacity: inPlan ? 1 : 0.45 }));
-      pole.position.set(x, y + ph / 2, z); group.add(pole);
+      const col = objCol[t.objective] || 0xffffff;
+      if (pv) { // astronaut view: a 2.5 m survey flag at the stop
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 2.5, 6), new THREE.MeshLambertMaterial({ color: 0xdddddd }));
+        pole.position.set(x, y + 1.25, z); group.add(pole);
+        const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.45), new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide, transparent: !inPlan, opacity: inPlan ? 1 : 0.5 }));
+        flag.position.set(x + 0.36, y + 2.25, z); group.add(flag);
+      } else {
+        const ph = inPlan ? 260 : 120;
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(6, 6, ph, 8), new THREE.MeshBasicMaterial({ color: col, transparent: !inPlan, opacity: inPlan ? 1 : 0.45 }));
+        pole.position.set(x, y + ph / 2, z); group.add(pole);
+      }
       if (inPlan) {
         const k = p.order.indexOf(i + 1);
         const near = p.order.map((j, q) => [S.targets[j - 1], q]).filter(([u]) => Math.hypot((u.lat - t.lat) * 59200, (u.lon - t.lon) * 56200) < 250);
@@ -170,25 +185,68 @@ export async function create3D(el, S) {
     camera.near = 5; camera.far = 300000; camera.updateProjectionMatrix();
   };
   overview();
-  let playing = false, lastT = 0;
-  const povAt = (frac) => {
-    const p = S.plan; if (!p) return;
-    const t = frac * p.totalS, pr = p.profile;
+  let playing = false, lastT = 0, yaw = null, camMode = "follow", speed = 60;
+  const AHEAD_M = 150; // look at the path this far ahead, not at the next grid cell
+  const stepAt = (p, t) => p.steps.find((s) => t >= s.t0 && t < s.t1) || p.steps[p.steps.length - 1];
+  // the EVA pair (buddy rule): crew 1 orange band, crew 2 cyan band
+  const crew = [makeAstronaut(0xff8c4a), makeAstronaut(0x3dd9ff)];
+  crew.forEach((c) => { c.root.visible = false; scene.add(c.root); });
+  let buddyYaw = null;
+  // position on the plan at EVA time t (interpolated between grid cells)
+  const posAt = (t) => {
+    const pr = S.plan.profile;
+    t = Math.max(0, Math.min(t, pr[pr.length - 1][0]));
     let lo = 0, hi = pr.length - 1;
     while (lo < hi) { const m = (lo + hi + 1) >> 1; if (pr[m][0] <= t) lo = m; else hi = m - 1; }
-    const k = pr[lo][2], k2 = pr[Math.min(pr.length - 1, lo + 6)][2];
-    const [x, z] = cellXZ(k), [x2, z2] = cellXZ(k2);
-    // interpolate within the cell step for smooth motion
     const nxt = pr[Math.min(pr.length - 1, lo + 1)], f = nxt[0] > pr[lo][0] ? Math.min(1, (t - pr[lo][0]) / (nxt[0] - pr[lo][0])) : 0;
-    const [xn, zn] = cellXZ(nxt[2]), px = x + (xn - x) * f, pz = z + (zn - z) * f;
-    const eye = 1.7 * exag + 1.7; // 1.7 m eye height (scaled with the exaggeration so the horizon looks right)
-    camera.position.set(px, surfaceY(px, pz) + eye, pz);
-    const dx = x2 - px, dz = z2 - pz, L = Math.hypot(dx, dz) || 1;
-    camera.lookAt(px + (dx / L) * 200, surfaceY(px + (dx / L) * 200, pz + (dz / L) * 200) + eye * 0.6, pz + (dz / L) * 200);
-    camera.near = 0.5; camera.updateProjectionMatrix();
-    walker.position.set(px, surfaceY(px, pz) + 30, pz);
+    const [x, z] = cellXZ(pr[lo][2]), [xn, zn] = cellXZ(nxt[2]);
+    return { lo, k: pr[lo][2], px: x + (xn - x) * f, pz: z + (zn - z) * f };
+  };
+  const ease = (cur, want, dt) => (cur == null || dt == null ? want : cur + Math.atan2(Math.sin(want - cur), Math.cos(want - cur)) * (1 - Math.exp(-dt * 5)));
+  // dtReal: seconds of animation since the last frame (turn smoothly); null = jump straight to the heading
+  const povAt = (frac, dtReal = null) => {
+    const p = S.plan; if (!p) return;
+    const t = frac * p.totalS, pr = p.profile;
+    const { lo, k, px, pz } = posAt(t);
+    // heading: towards the point on the route ~150 m ahead (skips the grid's staircase zig-zags)
+    let ax = px, az = pz;
+    for (let j = lo + 1; j < pr.length; j++) {
+      [ax, az] = cellXZ(pr[j][2]);
+      if (Math.hypot(ax - px, az - pz) >= AHEAD_M) break;
+    }
+    if (Math.hypot(ax - px, az - pz) > 1) yaw = ease(yaw, Math.atan2(ax - px, az - pz), dtReal);
+    const fx = Math.sin(yaw ?? 0), fz = Math.cos(yaw ?? 0), gy = surfaceY(px, pz);
+    // crew 1 at the plan position; crew 2 a few metres behind (or beside them on station)
+    const [a, b] = crew;
+    a.root.position.set(px, gy, pz); a.root.rotation.y = yaw ?? 0;
+    const station = stepAt(p, t).kind !== "walk";
+    let bx, bz;
+    if (station) { bx = px + fz * 1.8 - fx * 0.6; bz = pz - fx * 1.8 - fz * 0.6; } // beside, facing the same work site
+    else { bx = px + fz * 2.2 - fx * 1.6; bz = pz - fx * 2.2 - fz * 1.6; } // walking side by side, a step behind
+    buddyYaw = ease(buddyYaw, yaw ?? 0, dtReal);
+    b.root.position.set(bx, surfaceY(bx, bz), bz); b.root.rotation.y = buddyYaw;
+    a.root.visible = camMode === "follow"; b.root.visible = true;
+    if (camMode === "eye") {
+      const eye = 1.7 * exag + 1.7; // 1.7 m eye height (scaled with the exaggeration so the horizon looks right)
+      camera.position.set(px, gy + eye, pz);
+      const lx = px + fx * 200, lz = pz + fz * 200;
+      camera.lookAt(lx, surfaceY(lx, lz) + eye * 0.6, lz);
+    } else { // follow camera: behind and above the lead astronaut, looking slightly ahead of them
+      let cx = px - fx * 7.5, cz = pz - fz * 7.5, cy = gy + 3.2;
+      cy = Math.max(cy, surfaceY(cx, cz) + 1.6); // never below the ground on slopes
+      camera.position.set(cx, cy, cz);
+      camera.lookAt(px + fx * 5, gy + 1.3, pz + fz * 5);
+    }
+    camera.near = 0.3; camera.updateProjectionMatrix();
+    walker.position.set(px, gy + 30, pz);
     hud(t, k);
   };
+  function activity(t) {
+    const p = S.plan, s = stepAt(p, t), left = Math.max(0, Math.round((s.t1 - t) / 60));
+    if (s.kind === "station") return `<span class="act st">⏸ On station: <b>${s.label}</b> · ${left} min left</span>`;
+    if (s.kind === "walk") return `<span class="act">🚶 Walking to <b>${s.to ? S.targets[s.to - 1].name : "shelter"}</b> · ${left} min</span>`;
+    return `<span class="act st">⏸ ${s.label} · ${left} min left</span>`;
+  }
   function hud(t, k) {
     const p = S.plan, K = S.K, v = K.v, el = document.getElementById("v3hud");
     let walked = 0, J = 0;
@@ -201,15 +259,17 @@ export async function create3D(el, S) {
     if (al - wb < 1800) warn.push(`walk-back margin ${Math.round((al - wb) / 60)} min`);
     if (sunE < 10) warn.push("low sun");
     el.hidden = false;
-    el.innerHTML = `<b>${fmtH(ltst)} LTST</b> · EVA ${Math.floor(t / 3600)} h ${String(Math.round((t % 3600) / 60)).padStart(2, "0")}<br>
+    el.innerHTML = `${activity(t)}<b>${fmtH(ltst)} LTST</b> · EVA ${Math.floor(t / 3600)} h ${String(Math.round((t % 3600) / 60)).padStart(2, "0")}<br>
       Walked <b>${(walked / 1000).toFixed(2)} km</b> · effort ${(J / 1e6).toFixed(2)} MJ (${S.ec.name})<br>
       To shelter <b>${Math.round(wb / 60)} min</b> · allowed ${Math.round(al / 60)} min<br>
       Slope ${slope.toFixed(0)}° · GCR dose ${(0.64 * t / 86400).toFixed(3)} mSv · sun ${sunE.toFixed(0)}°<br>
       ${warn.length ? `<span class="warn">⚠ ${warn.join(" · ")}</span>` : `<span style="color:#9be7a9">Suit & route OK</span>`}`;
   }
   const pov = () => { mode = "pov"; controls.enabled = false; rebuild(); povAt(S.goFrac || 0); };
+  document.getElementById("v3cam").onchange = (e) => { camMode = e.target.value; if (mode !== "pov") pov(); else povAt(S.goFrac || 0); };
+  document.getElementById("v3speed").onchange = (e) => { speed = +e.target.value; };
   document.getElementById("v3pov").onclick = pov;
-  document.getElementById("v3over").onclick = () => { playing = false; document.getElementById("v3play").textContent = "▶ Walk route"; overview(); rebuild(); };
+  document.getElementById("v3over").onclick = () => { playing = false; document.getElementById("v3play").textContent = "▶ Walk route"; crew.forEach((c) => (c.root.visible = false)); overview(); rebuild(); };
   document.getElementById("v3play").onclick = () => { playing = !playing; document.getElementById("v3play").textContent = playing ? "❚❚ Pause" : "▶ Walk route"; if (playing) { if (mode !== "pov") pov(); if ((S.goFrac || 0) >= 1) S.goFrac = 0; lastT = performance.now(); } };
   document.getElementById("v3tex").onchange = (e) => { texMode = e.target.value; drawTex(); };
   document.getElementById("v3ex").onchange = (e) => { exag = +e.target.value; fillPos(); geo.attributes.position.needsUpdate = true; geo.computeVertexNormals(); rebuild(); mode === "pov" ? povAt(S.goFrac || 0) : overview(); };
@@ -220,10 +280,16 @@ export async function create3D(el, S) {
   const loop = (now) => {
     requestAnimationFrame(loop);
     if (el.hidden) return;
+    const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
+    const walkingNow = mode === "pov" && S.plan && stepAt(S.plan, (S.goFrac || 0) * S.plan.totalS).kind === "walk";
+    if (mode === "pov") { // limbs move every frame, at a believable cadence even when time is sped up
+      const cadence = Math.min(2.1, 0.9 * Math.sqrt(speed));
+      crew.forEach((c) => c.update(dt, playing && walkingNow, cadence));
+    }
     if (playing && S.plan) {
-      const dt = (now - lastT) / 1000; lastT = now;
-      S.goFrac = Math.min(1, (S.goFrac || 0) + (dt * 150) / S.plan.totalS); // 1 s = 2.5 min of EVA
-      povAt(S.goFrac);
+      // walking at the chosen speed; on station / airlock the animation runs 6x faster (the EVA clock stays real)
+      S.goFrac = Math.min(1, (S.goFrac || 0) + (dt * (walkingNow ? speed : speed * 6)) / S.plan.totalS);
+      povAt(S.goFrac, dt);
       const r = document.getElementById("goT"); if (r) r.value = Math.round(S.goFrac * 1000);
       if (S.goFrac >= 1) { playing = false; document.getElementById("v3play").textContent = "▶ Walk route"; }
     }
