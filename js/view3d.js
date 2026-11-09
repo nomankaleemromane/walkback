@@ -12,6 +12,7 @@ const SOL_H = 1.0275;
 export async function create3D(el, S) {
   const T = S.T, w = T.w, h = T.h;
   const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.setPixelRatio(Math.min(2, devicePixelRatio));
   el.appendChild(renderer.domElement);
   const scene = new THREE.Scene();
@@ -21,19 +22,21 @@ export async function create3D(el, S) {
 
   // ---- UI inside the 3D view
   el.insertAdjacentHTML("beforeend", `
-    <div class="v3-bar">
+    <div class="v3-top"><div class="v3-bar">
       <select id="v3tex" aria-label="3D surface layer"><option value="ctx">CTX image</option><option value="wb">CTX + walk-back zone</option><option value="hz">CTX + terrain hazard</option></select>
       <select id="v3ex" aria-label="Vertical exaggeration"><option value="1">1× height</option><option value="2" selected>2× height</option><option value="4">4× height</option></select>
       <button id="v3pov">🧑‍🚀 Astronaut view</button>
-      <select id="v3cam" aria-label="Camera"><option value="follow">Follow camera</option><option value="eye">First person</option></select>
+      <select id="v3cam" aria-label="Camera"><option value="follow">Follow camera</option><option value="front">Front camera</option><option value="eye">First person</option></select>
       <select id="v3speed" aria-label="Playback speed"><option value="1">Real time</option><option value="10">10× speed</option><option value="60" selected>60× speed</option><option value="150">150× speed</option></select>
       <button id="v3play">▶ Walk route</button><button id="v3over">Overview</button>
     </div>
-    <div class="v3-hud" id="v3hud" hidden></div>
+    <div class="v3-hud" id="v3hud" hidden></div></div>
     <div class="v3-note">Terrain: 20 m CTX DTM (USGS), texture: 6 m CTX ortho resampled to ~12 m/px. Not photorealistic at eye level.</div>`);
   const st = document.createElement("style");
-  st.textContent = `#view3 .v3-bar{position:absolute;top:10px;left:10px;z-index:5;display:flex;gap:6px;flex-wrap:wrap}
-  #view3 .v3-hud{position:absolute;top:56px;left:10px;z-index:5;background:#000c;border:1px solid #ff9a5c;border-radius:10px;padding:8px 12px;font:15px/1.45 system-ui;min-width:250px}
+  st.textContent = `#view3 .v3-top{position:absolute;top:10px;left:10px;right:10px;z-index:5;display:flex;flex-direction:column;align-items:flex-start;gap:8px;pointer-events:none}
+  #view3 .v3-top > *{pointer-events:auto}
+  #view3 .v3-bar{display:flex;gap:6px;flex-wrap:wrap}
+  #view3 .v3-hud{background:#000c;border:1px solid #ff9a5c;border-radius:10px;padding:8px 12px;font:15px/1.45 system-ui;min-width:250px}
   #view3 .v3-hud b{font-size:18px;color:#ffd166} #view3 .v3-hud .warn{color:#ff8a80;font-weight:700}
   #view3 .v3-hud .act{display:block;margin:-2px 0 6px;padding:5px 9px;border-radius:7px;background:#1e1511;border:1px solid #4a372c;font-size:15px}
   #view3 .v3-hud .act b{font-size:15px;color:#fff} #view3 .v3-hud .act.st{background:#3a2d12;border-color:#6b5520}
@@ -65,6 +68,7 @@ export async function create3D(el, S) {
   const tex = new THREE.CanvasTexture(texCanvas); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
   const mat = new THREE.MeshLambertMaterial({ map: tex, color: 0xffd9b8 });
   const terrain = new THREE.Mesh(geo, mat);
+  terrain.receiveShadow = true;
   scene.add(terrain);
   let texMode = "ctx";
   const drawTex = async () => {
@@ -96,13 +100,28 @@ export async function create3D(el, S) {
   });
   scene.add(new THREE.Mesh(skyGeo, skyMat));
   const sun = new THREE.DirectionalLight(0xfff1dd, 2.2); scene.add(sun); scene.add(sun.target);
+  const sunDir = new THREE.Vector3(0, 1, 0);
+  sun.shadow.mapSize.set(1024, 1024);
+  Object.assign(sun.shadow.camera, { left: -7, right: 7, top: 7, bottom: -7, near: 1, far: 160 });
+  sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
+  // sky reflection for the gold visor and metal parts (affects only the astronauts' materials)
+  {
+    const pm = new THREE.PMREMGenerator(renderer), env = new THREE.Scene();
+    env.add(new THREE.Mesh(new THREE.SphereGeometry(10, 32, 16), new THREE.ShaderMaterial({
+      side: THREE.BackSide,
+      vertexShader: "varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
+      fragmentShader: "varying vec3 vP; void main(){ float u = vP.y; vec3 sky = mix(vec3(0.85,0.66,0.48), vec3(0.62,0.45,0.32), clamp(u,0.0,1.0)); vec3 ground = vec3(0.32,0.21,0.14); gl_FragColor = vec4(u > 0.0 ? sky : ground, 1.0); }",
+    })));
+    scene.environment = pm.fromScene(env, 0.04).texture;
+    pm.dispose();
+  }
   const hemi = new THREE.HemisphereLight(0xffd2a8, 0x3a2416, 0.75); scene.add(hemi);
   const setSun = (ltst) => {
     const mt = marsTime(new Date(), T.site.habitat[1]);
     const el = sunElevation(ltst, T.site.habitat[0], mt.declDeg), az = sunAzimuth(ltst, T.site.habitat[0], mt.declDeg);
     const e = (el * Math.PI) / 180, a = (az * Math.PI) / 180;
     const dir = new THREE.Vector3(Math.sin(a) * Math.cos(e), Math.sin(e), -Math.cos(a) * Math.cos(e));
-    sun.position.copy(dir).multiplyScalar(50000); sun.intensity = el > 0 ? 2.2 : 0.05;
+    sunDir.copy(dir); sun.position.copy(dir).multiplyScalar(50000); sun.intensity = el > 0 ? 2.2 : 0.05;
     hemi.intensity = el > 0 ? 0.75 : 0.15;
     skyMat.uniforms.sunDir.value.copy(dir); skyMat.uniforms.day.value = Math.max(0, Math.min(1, (el + 4) / 14));
     return { el, az };
@@ -147,7 +166,7 @@ export async function create3D(el, S) {
   function rebuild() {
     group.clear();
     const p = S.plan, pv = mode === "pov";
-    const r = pv && p ? tubeXZ(walkLine(), 0x33d6ff, 0.09, 0.2) : tube(p && p.path, 0x33d6ff, 7, 4); if (r) group.add(r);
+    const r = pv && p ? tubeXZ(walkLine(), 0x33d6ff, 0.045, 0.06) : tube(p && p.path, 0x33d6ff, 7, 4); if (r) group.add(r);
     if (S.mode === "abort" && S.abortLine) {
       const c = S.abortCell >= 0 ? S.abortCell : null;
       if (c != null) { const path = []; for (let k = c, g2 = 0; k !== -1 && g2 < 1e5; k = S.WB.P[k], g2++) path.push(k); const a = tube(path, 0xff5a4f, pv ? 0.45 : 9, pv ? 0.5 : 4); if (a) group.add(a); }
@@ -176,10 +195,10 @@ export async function create3D(el, S) {
       }
     });
     const [hx, hz] = cellXZ(S.home);
-    const dome = new THREE.Mesh(new THREE.SphereGeometry(40, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshLambertMaterial({ color: 0xf2f2f2 }));
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(pv ? 6 : 40, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshLambertMaterial({ color: 0xf2f2f2 }));
     dome.position.set(hx, surfaceY(hx, hz), hz); group.add(dome);
-    const hl = label("Habitat", "#ffd166"); hl.position.set(hx, surfaceY(hx, hz) + (pv ? 60 : 220), hz); if (pv) hl.scale.multiplyScalar(0.12); group.add(hl);
-    if (S.roverOn && S.rover >= 0) { const [rx, rz] = cellXZ(S.rover); const rv = new THREE.Mesh(new THREE.BoxGeometry(60, 30, 30), new THREE.MeshLambertMaterial({ color: 0x2fa84f })); rv.position.set(rx, surfaceY(rx, rz) + 15, rz); group.add(rv); const rl = label("Rover safe haven", "#9be7a9"); rl.position.set(rx, surfaceY(rx, rz) + (pv ? 50 : 200), rz); if (pv) rl.scale.multiplyScalar(0.12); group.add(rl); }
+    const hl = label("Habitat", "#ffd166"); hl.position.set(hx, surfaceY(hx, hz) + (pv ? 12 : 220), hz); if (pv) hl.scale.multiplyScalar(0.012); group.add(hl);
+    if (S.roverOn && S.rover >= 0) { const [rx, rz] = cellXZ(S.rover); const rv = new THREE.Mesh((pv ? new THREE.BoxGeometry(6, 3, 3) : new THREE.BoxGeometry(60, 30, 30)), new THREE.MeshLambertMaterial({ color: 0x2fa84f })); rv.position.set(rx, surfaceY(rx, rz) + (pv ? 1.5 : 15), rz); group.add(rv); const rl = label("Rover safe haven", "#9be7a9"); rl.position.set(rx, surfaceY(rx, rz) + (pv ? 10 : 200), rz); if (pv) rl.scale.multiplyScalar(0.012); group.add(rl); }
     if (!pv) group.add(walker);
   }
   const walker = new THREE.Mesh(new THREE.CylinderGeometry(10, 10, 60, 10), new THREE.MeshBasicMaterial({ color: 0xff9a5c }));
@@ -264,7 +283,7 @@ export async function create3D(el, S) {
     const bx = B.px + sx * BUDDY_SIDE_M, bz = B.pz + sz * BUDDY_SIDE_M;
     b.root.position.set(bx, surfaceY(bx, bz), bz); b.root.rotation.y = b.yaw;
     b.station = Bt > 0 && stepAt(p, Bt).kind === "station";
-    a.root.visible = camMode === "follow"; b.root.visible = true;
+    a.root.visible = camMode !== "eye"; b.root.visible = true;
     // camera: eases towards the lead's heading, so it follows calmly instead of snapping
     camYaw = ease(camYaw, yaw, dtReal, 3);
     const fx = Math.sin(camYaw), fz = Math.cos(camYaw);
@@ -273,6 +292,11 @@ export async function create3D(el, S) {
       camera.position.set(A.px, gy + eye, A.pz);
       const lx = A.px + fx * 200, lz = A.pz + fz * 200;
       camera.lookAt(lx, surfaceY(lx, lz) + eye * 0.6, lz);
+    } else if (camMode === "front") { // ahead of the pair, looking back at their faces (visor, chest panel)
+      const cx = A.px + fx * 6.5 - fz * 1.2, cz = A.pz + fz * 6.5 + fx * 1.2;
+      const cy = Math.max(gy + 1.9, surfaceY(cx, cz) + 1.4);
+      camera.position.set(cx, cy, cz);
+      camera.lookAt(A.px - fz * 1.1, gy + 1.25, A.pz + fx * 1.1);
     } else { // follow camera: behind and above the lead astronaut, looking slightly ahead of them
       const cx = A.px - fx * 7.5, cz = A.pz - fz * 7.5;
       const cy = Math.max(gy + 3.2, surfaceY(cx, cz) + 1.6); // never below the ground on slopes
@@ -330,6 +354,12 @@ export async function create3D(el, S) {
       povAt(S.goFrac, dt);
       const r = document.getElementById("goT"); if (r) r.value = Math.round(S.goFrac * 1000);
       if (S.goFrac >= 1) { playing = false; document.getElementById("v3play").textContent = "▶ Walk route"; }
+    }
+    sun.castShadow = mode === "pov";
+    if (mode === "pov") { // shadow camera follows the lead astronaut (light direction unchanged)
+      const c0 = crew[0].root.position;
+      sun.target.position.copy(c0); sun.position.copy(c0).addScaledVector(sunDir, 80);
+      sun.target.updateMatrixWorld();
     }
     if (mode === "pov") { // limbs: one stride cycle per ~1.3 m covered, so feet match the ground at real time
       for (const c of crew) {

@@ -327,7 +327,7 @@ function setupUI() {
   $("goAbort").onclick = () => { S.abortCell = goPosition().cell; setMode("abort"); };
   $("abortResume").onclick = () => setMode("go");
   $("view3d").onclick = () => setView(S.view === "2d" ? "3d" : "2d");
-  $("demo").onclick = () => import("./demo.js").then((m) => m.runDemo(S, { setMode, setView, recompute, setSw, setGo, renderAbort, goCell: () => goPosition().cell }));
+  $("demo").onclick = () => import("./demo.js").then((m) => m.runDemo(S, { setMode, setView, recompute, setSw, setGo, renderAbort, goCell: () => goPosition().cell, refreshStops: () => { renderTargets(); recompute(true); } }));
   $("exGeo").onclick = () => exportGeoJSON(S);
   $("exGpx").onclick = () => exportGPX(S);
   $("exCard").onclick = () => printCard(S);
@@ -388,6 +388,7 @@ function followMe(ll) {
   if (pt.x < 40 || pt.y < 40 || pt.x > right - 40 || pt.y > bottom - 40) m.panTo(ll);
 }
 export async function setView(v) {
+  if ($("view3d").disabled && v === "3d") return; // locked while the demo runs
   S.view = v; document.body.dataset.view = v;
   $("view3d").textContent = v === "3d" ? "2D" : "3D";
   $("map").style.visibility = v === "3d" ? "hidden" : "visible";

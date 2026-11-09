@@ -3,8 +3,14 @@ import { fmtH } from "./marstime.js";
 
 const C = { grid: "#3a2c25", text: "#b4a397", fg: "#f4ebe4", line: "#33d6ff", rad: "#e0453a", cap: "#ff9a5c", day: "#ffd166", eva: "#9b8cff", ok: "rgba(47,168,79,.16)" };
 
+// Size the canvas to its displayed width. A hidden canvas (inactive tab) has width 0: skip it and
+// draw when the tab opens. The aspect ratio comes from the original width/height attributes, never
+// from the canvas's own (already resized) size, which used to double on every hidden redraw.
 function setup(cv) {
-  const dpr = Math.min(2, window.devicePixelRatio || 1), w = cv.clientWidth || cv.width, h = Math.round(w * cv.height / cv.width);
+  const w = cv.clientWidth;
+  if (!w) return null;
+  if (!cv._aspect) cv._aspect = cv.height / cv.width;
+  const dpr = Math.min(2, window.devicePixelRatio || 1), h = Math.round(w * cv._aspect);
   if (cv._w !== w || cv._dpr !== dpr) { cv.width = w * dpr; cv.height = h * dpr; cv._w = w; cv._dpr = dpr; cv._h = h; }
   const g = cv.getContext("2d");
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -16,7 +22,8 @@ function setup(cv) {
 // Walk-back margin chart: x = EVA elapsed time, y = minutes to shelter.
 // Limits: radiation (flat), consumables (cap - t), daylight (dayEnd - t), planned EVA end (vertical).
 export function walkbackChart(cv, plan, K, binding, nowS = null) {
-  const { g, w, h } = setup(cv);
+  const S0 = setup(cv); if (!S0) return;
+  const { g, w, h } = S0;
   if (!plan) { g.fillStyle = C.text; g.fillText("No feasible plan.", 10, 20); return; }
   const L = 40, R = 10, T = 12, B = 22, PW = w - L - R, PH = h - T - B;
   const xMax = Math.max(K.evaS, plan.totalS) * 1.03;
@@ -59,7 +66,8 @@ export function allowed(s, K) { return Math.min(K.radS, K.capS - s, K.dayEndS - 
 
 // Elevation profile coloured by time to shelter.
 export function profileChart(cv, T, plan, K) {
-  const { g, w, h } = setup(cv);
+  const S0 = setup(cv); if (!S0) return;
+  const { g, w, h } = S0;
   if (!plan || plan.path.length < 2) return;
   const p = plan.path, zs = Array.from(p, (k) => T.Z[k]);
   let d = 0; const cum = [0];
@@ -80,7 +88,8 @@ export function profileChart(cv, T, plan, K) {
 
 // MEDA temperature by local solar time with daylight and the EVA window.
 export function tempChart(cv, bin, hours, startH, endH, sun) {
-  const { g, w, h } = setup(cv);
+  const S0 = setup(cv); if (!S0) return;
+  const { g, w, h } = S0;
   if (!bin) { g.fillStyle = C.text; g.fillText("No MEDA climatology for this season.", 10, 20); return; }
   const L = 38, PW = w - L - 10, PH = h - 40, T0 = -100, T1 = 10;
   const X = (hh) => L + (hh / 24) * PW, Y = (t) => 10 + PH - ((t - T0) / (T1 - T0)) * PH;
