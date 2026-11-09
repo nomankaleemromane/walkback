@@ -53,16 +53,19 @@ export function makeAstronaut(accent = 0xff8c4a) {
   const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.55, 24), shadowMat);
   shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.08; root.add(shadow);
 
-  let phase = 0, work = 0;
+  let phase = 0, work = 0, walkB = 0;
   return {
     root,
-    // dt: real seconds; cadenceHz: stride cycles per second; walking: true/false
-    update(dt, walking, cadenceHz = 0.9) {
-      const target = walking ? 0 : 1;               // blend between walk and work poses
-      work += (target - work) * (1 - Math.exp(-dt * 6));
+    // dt: real seconds; walking: legs moving; cadenceHz: stride cycles per second;
+    // working: at a science stop (crouch + sampling arm). Neither = standing.
+    update(dt, walking, cadenceHz = 0.9, working = false) {
+      const k = 1 - Math.exp(-dt * 6);
+      walkB += ((walking ? 1 : 0) - walkB) * k;
+      work += ((working && !walking ? 1 : 0) - work) * k;
       if (walking) phase += dt * cadenceHz * Math.PI * 2;
-      else phase += dt * 1.2;                       // slow "working" motion at a station
-      const s = Math.sin(phase), c = Math.cos(phase), w = 1 - work;
+      else if (working) phase += dt * 1.2;          // slow "working" motion at a station
+      else phase += (Math.round(phase / Math.PI) * Math.PI - phase) * k; // settle feet together when standing
+      const s = Math.sin(phase), c = Math.cos(phase), w = walkB;
       // legs: swing from the hip, bend the knee on the forward swing
       L.hip.rotation.x = s * 0.55 * w - 0.25 * work;  R.hip.rotation.x = -s * 0.55 * w - 0.1 * work;
       L.knee.rotation.x = Math.max(0, -c) * 0.85 * w + 0.45 * work; R.knee.rotation.x = Math.max(0, c) * 0.85 * w + 0.2 * work;

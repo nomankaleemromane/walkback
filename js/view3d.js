@@ -122,16 +122,17 @@ export async function create3D(el, S) {
   };
   const cellXZ = (k) => [X(k % w), Zc((k / w) | 0)];
   const group = new THREE.Group(); scene.add(group);
-  const tube = (cells, color, r, lift = 4) => {
-    if (!cells || cells.length < 2) return null;
-    // sample the ground every few metres between cells so the line follows every rise and dip
+  const tube = (cells, color, r, lift = 4) => (cells && cells.length > 1 ? tubeXZ(Array.from(cells, cellXZ), color, r, lift) : null);
+  const tubeXZ = (xz, color, r, lift) => {
+    if (!xz || xz.length < 2) return null;
+    // sample the ground every few metres so the line follows every rise and dip
     const thin = r < 1, stepM = thin ? 3 : 15, pts = [];
-    for (let i = 0; i < cells.length - 1; i++) {
-      const [x0, z0] = cellXZ(cells[i]), [x1, z1] = cellXZ(cells[i + 1]);
+    for (let i = 0; i < xz.length - 1; i++) {
+      const [x0, z0] = xz[i], [x1, z1] = xz[i + 1];
       const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, z1 - z0) / stepM));
       for (let s = 0; s < n; s++) { const x = x0 + ((x1 - x0) * s) / n, z = z0 + ((z1 - z0) * s) / n; pts.push(new THREE.Vector3(x, surfaceY(x, z) + lift, z)); }
     }
-    const [xe, ze] = cellXZ(cells[cells.length - 1]); pts.push(new THREE.Vector3(xe, surfaceY(xe, ze) + lift, ze));
+    const [xe, ze] = xz[xz.length - 1]; pts.push(new THREE.Vector3(xe, surfaceY(xe, ze) + lift, ze));
     const curve = new THREE.CatmullRomCurve3(pts, false, "centripetal");
     return new THREE.Mesh(new THREE.TubeGeometry(curve, Math.min(8000, pts.length * 2), r, 6, false), new THREE.MeshBasicMaterial({ color, transparent: thin, opacity: thin ? 0.75 : 1 }));
   };
@@ -146,7 +147,7 @@ export async function create3D(el, S) {
   function rebuild() {
     group.clear();
     const p = S.plan, pv = mode === "pov";
-    const r = tube(p && p.path, 0x33d6ff, pv ? 0.09 : 7, pv ? 0.2 : 4); if (r) group.add(r);
+    const r = pv && p ? tubeXZ(walkLine(), 0x33d6ff, 0.09, 0.2) : tube(p && p.path, 0x33d6ff, 7, 4); if (r) group.add(r);
     if (S.mode === "abort" && S.abortLine) {
       const c = S.abortCell >= 0 ? S.abortCell : null;
       if (c != null) { const path = []; for (let k = c, g2 = 0; k !== -1 && g2 < 1e5; k = S.WB.P[k], g2++) path.push(k); const a = tube(path, 0xff5a4f, pv ? 0.45 : 9, pv ? 0.5 : 4); if (a) group.add(a); }
@@ -194,61 +195,93 @@ export async function create3D(el, S) {
     camera.near = 5; camera.far = 300000; camera.updateProjectionMatrix();
   };
   overview();
-  let playing = false, lastT = 0, yaw = null, camMode = "follow", speed = 60;
-  const AHEAD_M = 150; // look at the path this far ahead, not at the next grid cell
+  let playing = false, lastT = 0, yaw = null, camYaw = null, camMode = "follow", speed = 60;
   const stepAt = (p, t) => p.steps.find((s) => t >= s.t0 && t < s.t1) || p.steps[p.steps.length - 1];
   // the EVA pair (buddy rule): crew 1 orange band, crew 2 cyan band
   const crew = [makeAstronaut(0xff8c4a), makeAstronaut(0x3dd9ff)];
-  crew.forEach((c) => { c.root.visible = false; scene.add(c.root); });
-  let buddyYaw = null;
-  // position on the plan at EVA time t (interpolated between grid cells)
+  crew.forEach((c) => { c.root.visible = false; scene.add(c.root); c.prev = null; c.yaw = null; });
+  const BUDDY_LAG_S = 8, BUDDY_SIDE_M = 1.8; // buddy walks ~4 m behind and to the side, on the same path
+
+  // ---- walking path: the planner's 40 m grid route, smoothed so people walk curves instead of a
+  // staircase. Points where the crew stands still (science stops, leg joins) stay fixed.
+  let smFor = null, SM = null;
+  function smooth() {
+    const p = S.plan;
+    if (smFor === p && SM) return SM;
+    const pr = p.profile, n = pr.length;
+    let xs = new Float64Array(n), zs = new Float64Array(n);
+    pr.forEach((q, i) => { const [x, z] = cellXZ(q[2]); xs[i] = x; zs[i] = z; });
+    const fixed = new Uint8Array(n); fixed[0] = fixed[n - 1] = 1;
+    for (let i = 1; i < n; i++) if (pr[i][2] === pr[i - 1][2]) fixed[i] = fixed[i - 1] = 1;
+    for (let pass = 0; pass < 5; pass++) { // [1 2 1]/4 kernel, 5 passes ~ 1.6-cell Gaussian
+      const nx = xs.slice(), nz = zs.slice();
+      for (let i = 1; i < n - 1; i++) if (!fixed[i]) { nx[i] = (xs[i - 1] + 2 * xs[i] + xs[i + 1]) / 4; nz[i] = (zs[i - 1] + 2 * zs[i] + zs[i + 1]) / 4; }
+      xs = nx; zs = nz;
+    }
+    // unit tangent at each point, from the nearest distinct neighbours on either side
+    const tx = new Float64Array(n), tz = new Float64Array(n);
+    const same = (a, b) => Math.abs(xs[a] - xs[b]) < 1e-6 && Math.abs(zs[a] - zs[b]) < 1e-6;
+    for (let i = 0; i < n; i++) {
+      let a = i - 1, b = i + 1;
+      while (a > 0 && same(a, i)) a--;
+      while (b < n - 1 && same(b, i)) b++;
+      a = Math.max(0, a); b = Math.min(n - 1, b);
+      const dx = xs[b] - xs[a], dz = zs[b] - zs[a], L = Math.hypot(dx, dz);
+      if (L > 1e-6) { tx[i] = dx / L; tz[i] = dz / L; }
+    }
+    smFor = p; SM = { xs, zs, tx, tz };
+    return SM;
+  }
+  const walkLine = () => { const { xs, zs } = smooth(), out = []; for (let i = 0; i < xs.length; i++) if (!out.length || Math.hypot(xs[i] - out[out.length - 1][0], zs[i] - out[out.length - 1][1]) > 0.5) out.push([xs[i], zs[i]]); return out; };
+  // position and walking direction on the smoothed path at EVA time t
   const posAt = (t) => {
-    const pr = S.plan.profile;
+    const pr = S.plan.profile, { xs, zs, tx, tz } = smooth();
     t = Math.max(0, Math.min(t, pr[pr.length - 1][0]));
     let lo = 0, hi = pr.length - 1;
     while (lo < hi) { const m = (lo + hi + 1) >> 1; if (pr[m][0] <= t) lo = m; else hi = m - 1; }
-    const nxt = pr[Math.min(pr.length - 1, lo + 1)], f = nxt[0] > pr[lo][0] ? Math.min(1, (t - pr[lo][0]) / (nxt[0] - pr[lo][0])) : 0;
-    const [x, z] = cellXZ(pr[lo][2]), [xn, zn] = cellXZ(nxt[2]);
-    return { lo, k: pr[lo][2], px: x + (xn - x) * f, pz: z + (zn - z) * f };
+    const n1 = Math.min(pr.length - 1, lo + 1), f = pr[n1][0] > pr[lo][0] ? Math.min(1, (t - pr[lo][0]) / (pr[n1][0] - pr[lo][0])) : 0;
+    const hx = tx[lo] + (tx[n1] - tx[lo]) * f, hz = tz[lo] + (tz[n1] - tz[lo]) * f; // heading turns gradually along each segment
+    return { lo, k: pr[lo][2], px: xs[lo] + (xs[n1] - xs[lo]) * f, pz: zs[lo] + (zs[n1] - zs[lo]) * f, heading: Math.hypot(hx, hz) > 1e-3 ? Math.atan2(hx, hz) : null };
   };
-  const ease = (cur, want, dt) => (cur == null || dt == null ? want : cur + Math.atan2(Math.sin(want - cur), Math.cos(want - cur)) * (1 - Math.exp(-dt * 5)));
-  // dtReal: seconds of animation since the last frame (turn smoothly); null = jump straight to the heading
+  const ease = (cur, want, dt, rate) => (cur == null || dt == null ? want : cur + Math.atan2(Math.sin(want - cur), Math.cos(want - cur)) * (1 - Math.exp(-dt * rate)));
+  // dtReal: seconds of animation since the last frame (ease turns); null = jump straight to the heading
   const povAt = (frac, dtReal = null) => {
     const p = S.plan; if (!p) return;
-    const t = frac * p.totalS, pr = p.profile;
-    const { lo, k, px, pz } = posAt(t);
-    // heading: towards the point on the route ~150 m ahead (skips the grid's staircase zig-zags)
-    let ax = px, az = pz;
-    for (let j = lo + 1; j < pr.length; j++) {
-      [ax, az] = cellXZ(pr[j][2]);
-      if (Math.hypot(ax - px, az - pz) >= AHEAD_M) break;
-    }
-    if (Math.hypot(ax - px, az - pz) > 1) yaw = ease(yaw, Math.atan2(ax - px, az - pz), dtReal);
-    const fx = Math.sin(yaw ?? 0), fz = Math.cos(yaw ?? 0), gy = surfaceY(px, pz);
-    // crew 1 at the plan position; crew 2 a few metres behind (or beside them on station)
+    const t = frac * p.totalS;
     const [a, b] = crew;
-    a.root.position.set(px, gy, pz); a.root.rotation.y = yaw ?? 0;
-    const station = stepAt(p, t).kind !== "walk";
-    let bx, bz;
-    if (station) { bx = px + fz * 1.8 - fx * 0.6; bz = pz - fx * 1.8 - fz * 0.6; } // beside, facing the same work site
-    else { bx = px + fz * 2.2 - fx * 1.6; bz = pz - fx * 2.2 - fz * 1.6; } // walking side by side, a step behind
-    buddyYaw = ease(buddyYaw, yaw ?? 0, dtReal);
-    b.root.position.set(bx, surfaceY(bx, bz), bz); b.root.rotation.y = buddyYaw;
+    // lead astronaut: faces the way the path goes right here (turns at the bend, not before it)
+    const A = posAt(t), leadStation = stepAt(p, t).kind !== "walk";
+    if (A.heading != null && !leadStation) yaw = ease(yaw, A.heading, dtReal, 14);
+    if (yaw == null) yaw = A.heading ?? 0;
+    const gy = surfaceY(A.px, A.pz);
+    a.root.position.set(A.px, gy, A.pz); a.root.rotation.y = yaw;
+    a.station = stepAt(p, t).kind === "station";
+    // buddy: same path, a few seconds behind, offset to the side of the path
+    const Bt = t - BUDDY_LAG_S, B = posAt(Bt), buddyStation = Bt <= 0 || stepAt(p, Bt).kind !== "walk";
+    if (B.heading != null && !buddyStation) b.yaw = ease(b.yaw, B.heading, dtReal, 14);
+    if (b.yaw == null) b.yaw = B.heading ?? yaw;
+    const sx = Math.cos(b.yaw), sz = -Math.sin(b.yaw); // to the buddy's right
+    const bx = B.px + sx * BUDDY_SIDE_M, bz = B.pz + sz * BUDDY_SIDE_M;
+    b.root.position.set(bx, surfaceY(bx, bz), bz); b.root.rotation.y = b.yaw;
+    b.station = Bt > 0 && stepAt(p, Bt).kind === "station";
     a.root.visible = camMode === "follow"; b.root.visible = true;
+    // camera: eases towards the lead's heading, so it follows calmly instead of snapping
+    camYaw = ease(camYaw, yaw, dtReal, 3);
+    const fx = Math.sin(camYaw), fz = Math.cos(camYaw);
     if (camMode === "eye") {
       const eye = 1.7 * exag + 1.7; // 1.7 m eye height (scaled with the exaggeration so the horizon looks right)
-      camera.position.set(px, gy + eye, pz);
-      const lx = px + fx * 200, lz = pz + fz * 200;
+      camera.position.set(A.px, gy + eye, A.pz);
+      const lx = A.px + fx * 200, lz = A.pz + fz * 200;
       camera.lookAt(lx, surfaceY(lx, lz) + eye * 0.6, lz);
     } else { // follow camera: behind and above the lead astronaut, looking slightly ahead of them
-      let cx = px - fx * 7.5, cz = pz - fz * 7.5, cy = gy + 3.2;
-      cy = Math.max(cy, surfaceY(cx, cz) + 1.6); // never below the ground on slopes
+      const cx = A.px - fx * 7.5, cz = A.pz - fz * 7.5;
+      const cy = Math.max(gy + 3.2, surfaceY(cx, cz) + 1.6); // never below the ground on slopes
       camera.position.set(cx, cy, cz);
-      camera.lookAt(px + fx * 5, gy + 1.3, pz + fz * 5);
+      camera.lookAt(A.px + fx * 5, gy + 1.3, A.pz + fz * 5);
     }
     camera.near = 0.3; camera.updateProjectionMatrix();
-    walker.position.set(px, gy + 30, pz);
-    hud(t, k);
+    walker.position.set(A.px, gy + 30, A.pz);
+    hud(t, A.k);
   };
   function activity(t) {
     const p = S.plan, s = stepAt(p, t), left = Math.max(0, Math.round((s.t1 - t) / 60));
@@ -291,16 +324,20 @@ export async function create3D(el, S) {
     if (el.hidden) return;
     const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
     const walkingNow = mode === "pov" && S.plan && stepAt(S.plan, (S.goFrac || 0) * S.plan.totalS).kind === "walk";
-    if (mode === "pov") { // limbs move every frame, at a believable cadence even when time is sped up
-      const cadence = Math.min(2.1, 0.9 * Math.sqrt(speed));
-      crew.forEach((c) => c.update(dt, playing && walkingNow, cadence));
-    }
     if (playing && S.plan) {
       // walking at the chosen speed; on station / airlock the animation runs 6x faster (the EVA clock stays real)
       S.goFrac = Math.min(1, (S.goFrac || 0) + (dt * (walkingNow ? speed : speed * 6)) / S.plan.totalS);
       povAt(S.goFrac, dt);
       const r = document.getElementById("goT"); if (r) r.value = Math.round(S.goFrac * 1000);
       if (S.goFrac >= 1) { playing = false; document.getElementById("v3play").textContent = "▶ Walk route"; }
+    }
+    if (mode === "pov") { // limbs: one stride cycle per ~1.3 m covered, so feet match the ground at real time
+      for (const c of crew) {
+        const p = c.root.position, d = c.prev ? Math.hypot(p.x - c.prev.x, p.z - c.prev.z) : 0;
+        c.prev = { x: p.x, z: p.z };
+        const v = dt > 0 ? d / dt : 0, moving = playing && v > 0.05;
+        c.update(dt, moving, Math.min(2.2, v / 1.3), !moving && !!c.station);
+      }
     }
     if (mode === "orbit") controls.update();
     renderer.render(scene, camera);
