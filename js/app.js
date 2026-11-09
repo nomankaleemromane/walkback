@@ -19,16 +19,21 @@ const hm = (s) => { const m = Math.round(s / 60); return m >= 60 ? `${Math.floor
 const SOL_H = 1.0275; // Earth hours per Mars "hour" of local solar time
 
 export const S = {
+  legendMin: window.innerWidth < 640,
   mode: "plan", view: "2d", caseName: "central", startLtst: 9, swMode: "live", radOverride: "",
   legsCache: new Map(), overlays: {}, goFrac: 0, abortCell: -1, rover: null, roverOn: false, fromRover: true,
 };
 window.WALKBACK = S; // for debugging and tests
 
 // ------------------------------------------------------------------ boot
+const loadMsg = (t) => { const el = $("loadMsg"); if (el) el.textContent = t; };
 async function boot() {
   setNet("…", "");
+  loadMsg("Loading mission policy and site data…");
   S.policy = await fetchGet("config/policy.json", "json");
   const P = await loadSite(BASE, fetchGet);
+  loadMsg("Building terrain and walk-back field…");
+  await new Promise((r) => setTimeout(r, 0));
   Object.assign(S, { site: P.site, traffic: P.traffic, meta: P.targets || { objectives: [], targets: [] }, meda: P.meda || { hours_ltst: [], bins: [] } });
   $("siteName").textContent = P.site.name.split(" (")[0];
   fetchGet("data/sites/index.json", "json").then((ix) => {
@@ -36,28 +41,40 @@ async function boot() {
     ix.sites.forEach((x) => sel.add(new Option(x.name, x.id)));
     sel.value = SITE; sel.onchange = () => { location.search = "?site=" + sel.value; };
   }).catch(() => {});
-  S.targets = P.targets.targets.map((t) => ({ ...t, enabled: true }));
+  S.targets = S.meta.targets.map((t) => ({ ...t, enabled: true }));
   S.T = buildTerrain(P.site, P.raw, P.traffic, S.policy);
   S.home = nearestPassable(S.T, llToCell(S.T, ...P.site.habitat));
   S.cells = S.targets.map((t) => nearestPassable(S.T, llToCell(S.T, t.lat, t.lon)));
   computeWB();
   setupMap();
-  const pts = [S.site.habitat, ...S.targets.filter((t) => t.priority >= 6).map((t) => [t.lat, t.lon])];
-  S.M.map.fitBounds(L.latLngBounds(pts).pad(0.15));
+  fitHome();
   setupUI();
   renderTargets();
   renderAssumptions();
-  await loadSpaceWeather();
+  loadMsg("Planning the Marswalk…");
+  await loadSpaceWeather(false); // cached snapshot first: plan immediately, even offline
   recompute(true);
   toggleOverlay("wb", true);
-  setTimeout(computeFound, 50);
+  $("loading").hidden = true;
+  fitRoute();
+  setTimeout(fitRoute, 300); // again once the layout has settled
+  loadSpaceWeather(true); // then try the live feed in the background
   loadBacktest();
   if ("serviceWorker" in navigator && location.protocol.startsWith("http") && !/[?&]nosw/.test(location.search)) navigator.serviceWorker.register("sw.js").catch(() => {});
   setInterval(() => { renderNow(); }, 60000);
-  setInterval(loadSpaceWeather, 30 * 60000);
+  setInterval(() => loadSpaceWeather(true), 30 * 60000);
   document.body.dataset.ready = "1";
 }
 
+function fitRoute() {
+  S.M.map.invalidateSize();
+  if (S.route.getLatLngs().length) S.M.map.fitBounds(S.route.getBounds().pad(0.3)); else fitHome();
+}
+function fitHome() {
+  const pts = [S.site.habitat, ...S.targets.filter((t) => t.priority >= 6).map((t) => [t.lat, t.lon])];
+  S.M.map.invalidateSize();
+  S.M.map.fitBounds(L.latLngBounds(pts).pad(0.12));
+}
 function computeWB() {
   const src = [S.home];
   if (S.roverOn && S.rover >= 0) src.push(S.rover);
@@ -66,10 +83,11 @@ function computeWB() {
 }
 
 // ------------------------------------------------------------------ space weather
-async function loadSpaceWeather() {
+async function loadSpaceWeather(tryLive = true) {
   const iso = (d) => d.toISOString().slice(0, 10), now = new Date(), st = new Date(now - 30 * 864e5);
   let runs = null, src = "", fetched = null, live = false;
   try {
+    if (!tryLive) throw 0;
     const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 9000);
     const r = await fetch(`https://ccmc.gsfc.nasa.gov/DONKI-API/get/WSAEnlilSimulations?startDate=${iso(st)}&endDate=${iso(now)}`, { signal: ctl.signal });
     clearTimeout(to);
@@ -78,10 +96,11 @@ async function loadSpaceWeather() {
   } catch {
     try { const j = await fetchGet("data/donki_snapshot.json", "json"); runs = j.runs; fetched = new Date(j.fetched); src = "cached DONKI snapshot"; } catch {}
   }
+  if (!runs && S.sw && S.sw.runs) return; // keep what we have
   S.sw = { runs, src, fetched, live, arrivals: runs ? marsArrivals(runs) : [] };
   const age = fetched ? (Date.now() - fetched) / 864e5 : null;
   setNet(live ? "Live NASA feed" : runs ? `Cached data · ${age < 1 ? Math.round(age * 24) + " h" : age.toFixed(1) + " days"} old` : "Offline · no feed", live ? "live" : runs ? "cached" : "off");
-  if (S.policy && S.T && S.plan !== undefined) recompute();
+  if (S.policy && S.T && S.plan !== undefined) { const before = S.swNow && S.swNow.level; recompute(true); if (before !== S.swNow.level) computeFoundSoon(); }
 }
 function setNet(t, cls) { const n = $("net"); n.textContent = t; n.className = "pill " + cls; }
 
@@ -157,6 +176,13 @@ export function recompute(now = false) {
   // quiet reference plan to explain what a storm removes
   S.quietPlan = planFor({ level: "quiet", limit: null }).plan;
   renderAll();
+  computeFoundSoon();
+}
+let foundTimer = 0;
+function computeFoundSoon() {
+  S.foundDirty = true;
+  clearTimeout(foundTimer);
+  if (S.tab === "evidence") foundTimer = setTimeout(() => { computeFound(); S.foundDirty = false; }, 250);
 }
 
 // ------------------------------------------------------------------ map
@@ -197,7 +223,7 @@ function setupMap() {
   S.route = L.polyline([], { color: "#33d6ff", weight: 4 }).addTo(map);
   S.abortLine = L.polyline([], { color: "#ff5a4f", weight: 5, dashArray: "8 6" }).addTo(map);
   S.markers = L.layerGroup().addTo(map);
-  S.me = L.circleMarker([0, 0], { radius: 9, color: "#fff", weight: 3, fillColor: "#ff9a5c", fillOpacity: 1 });
+  S.me = L.marker([0, 0], { icon: L.divIcon({ className: "", html: '<div class="me-icon"></div>', iconSize: [22, 22], iconAnchor: [11, 11] }), zIndexOffset: 1000, keyboard: false });
   map.on("mousemove", (e) => {
     const k = llToCell(S.T, e.latlng.lat, e.latlng.lng);
     if (!S.ec) return;
@@ -213,13 +239,26 @@ function wbLimitS() {
 }
 function toggleOverlay(k, on) {
   if (S.overlays[k]) { S.M.map.removeLayer(S.overlays[k]); delete S.overlays[k]; }
-  if (on) { S.overlays[k] = S.ovDefs[k][3](); S.overlays[k].addTo(S.M.map); setOpacity(S.overlays[k], $("ovOp").value / 100); }
+  if (on) {
+    if (k === "wb") S.wbKey = wbKey();
+    S.overlays[k] = S.ovDefs[k][3](); S.overlays[k].addTo(S.M.map); setOpacity(S.overlays[k], $("ovOp").value / 100);
+  }
   renderLegend();
 }
-function refreshOverlay(k) { if (S.overlays[k]) toggleOverlay(k, true); }
+const wbKey = () => `${wbLimitS()}|${S.ec.paceKmh}|${S.roverOn ? S.rover : -1}`;
+function refreshOverlay(k) {
+  if (!S.overlays[k]) return;
+  if (k === "wb" && wbKey() === S.wbKey) return; // the walk-back raster only changes with the limit, pace or shelters
+  toggleOverlay(k, true);
+}
 function renderLegend() {
   const order = ["wb", "hazard", "slope", "geo", "ti"].filter((k) => S.overlays[k]);
-  $("legend").innerHTML = order.slice(0, 2).map((k) => M2.legendHTML(S.ovDefs[k][4], { maxS: S.policy.params.max_slope_deg.value, limitMin: Math.round(wbLimitS() / 60) })).join("<hr style='border-color:#333'>");
+  const objs = S.meta.objectives.map((o) => `<span><span class="dot" style="background:${objColor(o.id)}"></span>${esc(o.name)}</span>`).join("");
+  $("legend").innerHTML = `<button class="lg-toggle" aria-expanded="${!S.legendMin}" title="Show or hide the legend">Legend ${S.legendMin ? "▴" : "▾"}</button>` +
+    `<div class="lg-body"><div class="lrow">${objs}<span>⌂ habitat</span></div>` +
+    order.slice(0, 2).map((k) => "<hr>" + M2.legendHTML(S.ovDefs[k][4], { maxS: S.policy.params.max_slope_deg.value, limitMin: Math.round(wbLimitS() / 60) })).join("") + "</div>";
+  $("legend").classList.toggle("min", !!S.legendMin);
+  $("legend").querySelector(".lg-toggle").onclick = () => { S.legendMin = !S.legendMin; renderLegend(); };
 }
 let travLayer = null;
 function traverseLayer() {
@@ -274,8 +313,13 @@ function setupUI() {
   $("exGeo").onclick = () => exportGeoJSON(S);
   $("exGpx").onclick = () => exportGPX(S);
   $("exCard").onclick = () => printCard(S);
+  // side-panel tabs
+  document.querySelectorAll(".tabs button").forEach((b) => (b.onclick = () => setTab(b.dataset.tab)));
+  const sum = $("summary"), setSumH = () => document.documentElement.style.setProperty("--sum-h", sum.offsetHeight + "px");
+  new ResizeObserver(setSumH).observe(sum); setSumH();
+  $("swb").onclick = () => setTab("conditions"); $("swb").style.cursor = "pointer"; $("swb").title = "Space-weather details";
   // rover safe haven (optional consideration: rover assistance)
-  $("c-plan").insertAdjacentHTML("beforeend", `<h3>Rover assistance <small class="mut">optional</small></h3><div class="row"><label><input type="checkbox" id="rover"> Pressurized rover parked as a second safe haven</label><button id="roverPlace">Place on map</button></div><div class="row"><label><input type="checkbox" id="fromRover" checked> Crew drives out: EVA starts and ends at the rover</label></div><p class="mut small" id="roverNote">A pressurized rover counts as a safe haven (xEVA con-ops, EVA-EXP-0042 p.40). Walk-back times then go to the nearest shelter.</p>`);
+  $("c-rover").insertAdjacentHTML("beforeend", `<h2>Rover assistance <small class="mut">optional</small></h2><div class="row"><label><input type="checkbox" id="rover"> Pressurized rover parked as a second safe haven</label><button id="roverPlace">Place on map</button></div><div class="row"><label><input type="checkbox" id="fromRover" checked> Crew drives out: EVA starts and ends at the rover</label></div><p class="mut small" id="roverNote">A pressurized rover counts as a safe haven (xEVA con-ops, EVA-EXP-0042 p.40). Walk-back times then go to the nearest shelter.</p>`);
   $("rover").onchange = () => { S.roverOn = $("rover").checked; if (S.roverOn && S.rover == null) S.rover = SITE === "jezero" ? nearestPassable(S.T, llToCell(S.T, 18.4545, 77.4105)) : defaultRover(); computeWB(); refreshOverlay("wb"); recompute(); computeFound(); };
   $("fromRover").onchange = () => { S.fromRover = $("fromRover").checked; S.legsCache.clear(); recompute(); computeFound(); };
   $("roverPlace").onclick = () => { S.placingRover = true; setMode("plan"); $("roverNote").textContent = "Click the map where the rover should park."; };
@@ -284,23 +328,46 @@ function setupUI() {
     if (e.key === "v" || e.key === "V") setView(S.view === "2d" ? "3d" : "2d");
     if (e.key === "1") setMode("plan"); if (e.key === "2") setMode("go"); if (e.key === "3") setMode("abort");
   });
-  window.addEventListener("resize", () => drawCharts());
+  window.addEventListener("resize", () => { clearTimeout(S.rz); S.rz = setTimeout(drawCharts, 120); });
   window.addEventListener("online", () => loadSpaceWeather());
   window.addEventListener("offline", () => setNet("Offline · cached data", "off"));
+}
+export function setTab(t) {
+  S.tab = t;
+  document.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-selected", b.dataset.tab === t));
+  document.querySelectorAll(".tabpanel").forEach((p) => (p.hidden = p.dataset.tab !== t));
+  if (t === "evidence" && S.foundDirty !== false) { computeFound(); S.foundDirty = false; }
+  if (t === "plan" || t === "conditions") drawCharts();
+  const side = $("side"); if (side.scrollTop > $("summary").offsetHeight) side.scrollTop = 0;
 }
 export function setSw(mode) { S.swMode = mode; $("swm").value = mode; recompute(true); }
 export function setMode(m) {
   if ((m === "go" || m === "abort") && !S.committed && S.plan) { S.committed = S.plan; S.committedStart = startCell(); S.committedLevel = S.swNow.level; }
   if (m === "plan") { S.committed = null; S.committedStart = null; }
+  const prevMode = S.mode;
   S.mode = m; document.body.dataset.mode = m;
   document.querySelectorAll(".modes button").forEach((b) => b.setAttribute("aria-selected", b.dataset.mode === m));
   $("hud").hidden = m !== "go"; $("abortCard").hidden = m !== "abort";
   if (m !== "abort") S.abortLine.setLatLngs([]);
   if (m === "plan") { S.M.map.removeLayer(S.me); stopWalk(); }
   setTimeout(() => { S.M.map.invalidateSize(); if (S.v3) S.v3.resize(); }, 50);
+  if (m === "go" || m === "abort") setTimeout(fitForHud, 80);
+  if (m === "plan" && prevMode !== "plan") setTimeout(fitRoute, 80);
   if (m === "go") renderGo();
   if (m === "abort") { if (S.abortCell < 0) S.abortCell = goPosition().cell; renderAbort(); }
   if (S.v3) S.v3.update(S);
+}
+function fitForHud() {
+  const b = S.route.getLatLngs().length ? S.route.getBounds() : null;
+  if (!b) return;
+  const wide = window.innerWidth > 1080;
+  S.M.map.invalidateSize();
+  S.M.map.fitBounds(b.pad(0.1), wide ? { paddingTopLeft: [30, 30], paddingBottomRight: [440, 30] } : { paddingTopLeft: [20, 20], paddingBottomRight: [20, Math.round(window.innerHeight * 0.45)] });
+}
+function followMe(ll) {
+  const m = S.M.map, pt = m.latLngToContainerPoint(ll), size = m.getSize();
+  const wide = window.innerWidth > 1080, right = wide ? size.x - 430 : size.x, bottom = wide ? size.y : size.y * 0.5;
+  if (pt.x < 40 || pt.y < 40 || pt.x > right - 40 || pt.y > bottom - 40) m.panTo(ll);
 }
 export async function setView(v) {
   S.view = v; document.body.dataset.view = v;
@@ -346,10 +413,10 @@ function renderNow() {
   ].map(([b, s]) => `<div><b>${b}</b><small>${s}</small></div>`).join("");
   $("swb").textContent = sw.level.toUpperCase(); $("swb").className = "badge " + sw.level;
   const lim = S.lim;
-  $("swt").innerHTML = `<b>CME arrival alert (proxy for SEP risk).</b> ${esc(sw.why)} ` +
-    `Shelter-time limit: <b>${lim == null ? "none beyond consumables" : lim + " min"}</b>${S.radOverride ? " (manual override)" : ""}. ` +
-    `SEPs can arrive before the CME shock, so this is a proxy, not an SEP forecast. No dedicated Mars SEP monitor since MAVEN was declared lost (June 2026); Curiosity RAD is the surface reference (~0.64 mSv/day background; 20 May 2024 event ≈ 8.1 mGy). ` +
-    medaNote;
+  const limTxt = lim == null ? "no extra radiation limit" : `stay within ${lim} min of shelter`;
+  $("swLim").textContent = limTxt + (S.radOverride ? " (override)" : "");
+  $("swt").innerHTML = `<b>CME arrival alert at Mars: ${sw.level.toUpperCase()}.</b> ${esc(sw.why)}<br>Shelter-time limit: <b>${lim == null ? "none beyond consumables" : lim + " min"}</b>${S.radOverride ? " (manual override)" : ""}.`;
+  $("swMore").innerHTML = `A predicted CME arrival is a proxy for solar energetic particle (SEP) risk: SEPs can arrive before the CME shock. There has been no dedicated Mars SEP monitor since MAVEN was declared lost (June 2026); Curiosity's RAD is the surface reference (~0.64 mSv/day background; the 20 May 2024 event gave ≈ 8.1 mGy). A RAD-based nowcast can give ≥ 30 min warning (Löwe et al. 2025), which sets the 30-min Warning limit. ${medaNote}`;
 }
 const seasonName = (Ls) => (Ls < 90 ? "northern spring" : Ls < 180 ? "northern summer" : Ls < 270 ? "northern autumn (dusty season)" : "northern winter (dusty season)");
 
@@ -359,7 +426,7 @@ function renderVerdict() {
   const p = S.plan;
   $("vTitle").textContent = p ? `${p.order.length} science stop${p.order.length > 1 ? "s" : ""} · ${(p.totalS / 3600).toFixed(1)} h · ${(p.lengthM / 1000).toFixed(1)} km` : "No feasible Marswalk";
   const bn = { eva: "planned EVA length", consumables: "consumables walk-back", radiation: "radiation shelter time", daylight: "daylight" }[V.binding];
-  $("vBind").textContent = bn ? `Binding constraint: ${bn}. Effective limit = min(consumables walk-back, radiation lead time, daylight).` : "";
+  $("vBind").textContent = bn ? `Binding limit: ${bn}` : V.verdict === "NO-GO" ? "See checks below" : "";
   $("checks").innerHTML = V.checks.map((c) => `<li class="${c.level}${c.key === V.binding ? " binding" : ""}">${esc(c.text)}</li>`).join("");
   // what the storm removed vs quiet
   const q = S.quietPlan, now = new Set(p ? p.order : []);
@@ -375,6 +442,7 @@ function renderPlanStats() {
   ].map(([b, s]) => `<div><b>${b}</b><small>${s}</small></div>`).join("") : "";
 }
 
+const homeName = () => ((S.committedStart ?? startCell()) === S.home ? "habitat" : "rover");
 function ltstAt(s) { return S.startLtst + s / 3600 / SOL_H; }
 function renderTimeline() {
   const p = S.plan;
@@ -383,10 +451,10 @@ function renderTimeline() {
   $("timeline").innerHTML = p.steps.map((s) => {
     const t = `<span class="t">${fmtH(ltstAt(s.t0))}</span>`;
     if (s.kind === "walk") {
-      const to = s.to === 0 ? (startCell() === S.home ? "habitat" : "rover") : S.targets[s.to - 1].name;
+      const to = s.to === 0 ? homeName() : S.targets[s.to - 1].name;
       return `<li class="walk">${t}<span>Walk to ${esc(to)} · ${(s.lengthM / 1000).toFixed(2)} km, +${s.gainM.toFixed(0)}/−${s.lossM.toFixed(0)} m, max ${s.maxSlope.toFixed(0)}°</span><span>${mins(s.t1 - s.t0)}</span></li>`;
     }
-    if (s.kind === "station") return `<li class="st">${t}<span><b>${++n}. ${esc(s.label)}</b> · on station</span><span>${mins(s.t1 - s.t0)}</span></li>`;
+    if (s.kind === "station") return `<li class="st">${t}<span><span class="n" style="background:${objColor(S.targets[s.node - 1].objective)}">${++n}</span><b>${esc(s.label)}</b> · on station</span><span>${mins(s.t1 - s.t0)}</span></li>`;
     return `<li>${t}<span>${esc(s.label)}</span><span>${mins(s.t1 - s.t0)}</span></li>`;
   }).join("") + `<li>${`<span class="t">${fmtH(ltstAt(p.totalS))}</span>`}<span><b>Inside</b> · margin to EVA limit ${mins(S.K.evaS - p.totalS)}</span><span></span></li>`;
 }
@@ -412,7 +480,7 @@ function drawCharts() {
 function renderSens() {
   const rows = ["low", "central", "high"].map((c) => {
     const s = S.sens[c], ec = effortCase(S.policy, c), p = s.plan;
-    return `<tr${c === S.caseName ? ' style="background:#2b201a"' : ""}><td><b>${c}</b><br><small>${ec.paceKmh.toFixed(1)} km/h · k ${ec.k} · ${ec.massKg} kg</small></td><td>${p ? hm(p.totalS) : "–"}</td><td>${p ? (p.joules / 1e6).toFixed(1) + " MJ" : "–"}</td><td class="${s.ok ? "ok-t" : "fail-t"}">${S.plan ? (s.ok ? "plan holds" : "plan fails") : "–"}</td><td>${s.replanStops} stops</td></tr>`;
+    return `<tr${c === S.caseName ? ' class="cur"' : ""}><td><b>${c}</b><br><small>${ec.paceKmh.toFixed(1)} km/h · k ${ec.k} · ${ec.massKg} kg</small></td><td>${p ? hm(p.totalS) : "–"}</td><td>${p ? (p.joules / 1e6).toFixed(1) + " MJ" : "–"}</td><td class="${s.ok ? "ok-t" : "fail-t"}">${S.plan ? (s.ok ? "plan holds" : "plan fails") : "–"}</td><td>${s.replanStops} stops</td></tr>`;
   });
   $("sens").innerHTML = `<tr><th>Case</th><th>EVA</th><th>Effort</th><th>This plan</th><th>Re-plan</th></tr>` + rows.join("");
 }
@@ -423,7 +491,7 @@ function renderTargets() {
   $("objectives").innerHTML = objs.map((o) => {
     const list = S.targets.map((t, i) => [t, i]).filter(([t]) => t.objective === o.id);
     if (!list.length) return "";
-    return `<div class="obj"><h4><span style="color:${objColor(o.id)}">●</span> Objective ${o.id}: ${esc(o.name)}</h4><p>${esc(o.goal)}</p>` + list.map(([t, i]) => `
+    return `<div class="obj"><h4><span class="dot" style="background:${objColor(o.id)}"></span>Objective ${o.id}: ${esc(o.name)}</h4><p>${esc(o.goal)}</p>` + list.map(([t, i]) => `
       <div class="tg" id="tg-${i}">
         <input type="checkbox" ${t.enabled ? "checked" : ""} data-en="${i}" aria-label="Include ${esc(t.name)}">
         <div class="nm"><div class="nm1"><b data-open="${i}" tabindex="0" role="button">${esc(t.name)}</b><span class="chip" id="chip-${i}">–</span></div>
@@ -476,16 +544,38 @@ function drawRoute() {
   const ll = p ? M2.pathLatLngs(S.T, p.path) : [];
   S.route.setLatLngs(ll); S.routeCase.setLatLngs(ll);
   S.markers.clearLayers();
-  const home = cellToLL(S.T, S.home);
-  L.marker(home, { icon: L.divIcon({ className: "", html: `<div style="font-size:22px;filter:drop-shadow(0 0 3px #000)">⌂</div>`, iconSize: [24, 24], iconAnchor: [12, 14] }) })
-    .bindTooltip("Habitat (assumed at the Octavia E. Butler landing site)").addTo(S.markers);
-  if (S.roverOn && S.rover >= 0) L.circleMarker(cellToLL(S.T, S.rover), { radius: 9, color: "#fff", weight: 2, fillColor: "#2fa84f", fillOpacity: 1 }).bindTooltip("Pressurized rover (safe haven)").addTo(S.markers);
-  S.targets.forEach((t, i) => {
-    const inPlan = p && p.order.includes(i + 1);
-    const m = L.circleMarker([t.lat, t.lon], { radius: inPlan ? 8 : 6, color: "#000", weight: 2, fillColor: objColor(t.objective), fillOpacity: inPlan ? 1 : 0.45 }).addTo(S.markers);
-    m.bindTooltip(inPlan ? `${p.order.indexOf(i + 1) + 1}. ${t.name}` : t.name, { permanent: inPlan, direction: "right", className: "stop-label", offset: [8, 0] });
-    m.on("click", () => { const el = $("tg-" + i); if (el) { el.classList.add("open"); el.scrollIntoView({ behavior: "smooth", block: "center" }); } });
+  const HAB = '<div class="hab-icon"><svg viewBox="0 0 24 24"><path d="M3 18a9 9 0 0 1 18 0z" fill="#1e1511"/><rect x="10" y="13" width="4" height="5" fill="#ff8c4a"/><path d="M2 19h20" stroke="#1e1511" stroke-width="2"/></svg></div>';
+  L.marker(cellToLL(S.T, S.home), { icon: L.divIcon({ className: "", html: HAB, iconSize: [30, 30], iconAnchor: [15, 15] }), zIndexOffset: 500 })
+    .bindTooltip("Habitat (assumed at the landing site)", { className: "stop-tip", direction: "top", offset: [0, -14] }).addTo(S.markers);
+  if (S.roverOn && S.rover >= 0) L.marker(cellToLL(S.T, S.rover), { icon: L.divIcon({ className: "", html: '<div class="rover-icon">R</div>', iconSize: [28, 28], iconAnchor: [14, 14] }), zIndexOffset: 500 })
+    .bindTooltip("Pressurized rover (safe haven)", { className: "stop-tip", direction: "top", offset: [0, -14] }).addTo(S.markers);
+  // planned stops: one numbered badge per cluster of nearby stops (sites tens of metres apart)
+  const groups = [];
+  if (p) p.order.forEach((j, k) => {
+    const t = S.targets[j - 1], g = groups.find((G) => G.some((x) => Math.hypot((x.t.lat - t.lat) * 59200, (x.t.lon - t.lon) * 56200) < 250));
+    (g || groups[groups.push([]) - 1]).push({ t, k, i: j - 1 });
   });
+  for (const g of groups) {
+    const lat = g.reduce((a, x) => a + x.t.lat, 0) / g.length, lon = g.reduce((a, x) => a + x.t.lon, 0) / g.length;
+    const nums = g.map((x) => x.k + 1), label = nums.length > 1 ? `${nums[0]}–${nums[nums.length - 1]}` : String(nums[0]);
+    const cols = g.map((x) => objColor(x.t.objective)), bg = cols.every((c) => c === cols[0]) ? cols[0] : `linear-gradient(90deg,${cols.join(",")})`;
+    const w = 28 + (label.length - 1) * 7;
+    L.marker([lat, lon], { icon: L.divIcon({ className: "", html: `<div class="stop-badge" style="background:${bg};width:${w}px;border-radius:14px">${label}</div>`, iconSize: [w, 28], iconAnchor: [w / 2, 14] }), zIndexOffset: 300 })
+      .addTo(S.markers).bindTooltip(g.map((x) => `${x.k + 1}. ${esc(x.t.name)}`).join("<br>"), { className: "stop-tip", direction: "top", offset: [0, -14] })
+      .on("click", () => openStop(g[0].i));
+  }
+  S.targets.forEach((t, i) => {
+    if (p && p.order.includes(i + 1)) return;
+    L.circleMarker([t.lat, t.lon], { radius: 6, color: "#000", weight: 2, fillColor: objColor(t.objective), fillOpacity: t.enabled ? 0.6 : 0.2 })
+      .addTo(S.markers).bindTooltip(`${esc(t.name)} · not in plan`, { className: "stop-tip", direction: "top", offset: [0, -6] })
+      .on("click", () => openStop(i));
+  });
+}
+function openStop(i) {
+  if (S.mode !== "plan") return;
+  setTab("stops");
+  const el = $("tg-" + i);
+  if (el) { el.classList.add("open"); el.scrollIntoView({ behavior: "smooth", block: "center" }); }
 }
 
 // ------------------------------------------------------------------ Go / Abort
@@ -505,15 +595,19 @@ function renderGo() {
   if (!p) { $("h-next").textContent = "No feasible plan"; return; }
   const { t, cell } = goPosition(), v = S.K.v;
   const wb = S.WB.T[cell] / v, al = allowed(t, S.K), mar = al - wb;
-  $("h-clock").textContent = `${fmtH(ltstAt(t))} · ${hm(t)}`;
-  if (S.committed && S.swNow.level !== S.committedLevel) $("h-clock").textContent += " · limits changed";
+  $("h-clock").textContent = fmtH(ltstAt(t));
+  $("h-clock2").textContent = `${hm(t)} elapsed` + (S.committed && S.swNow.level !== S.committedLevel ? " · limits changed" : "");
   $("h-wb").textContent = mins(wb);
   $("h-lim").textContent = mins(al);
   $("h-mar").textContent = mins(mar); $("h-mar").className = mar > 1800 ? "margin-ok" : mar > 0 ? "margin-low" : "margin-bad";
   const next = p.steps.find((s) => s.t1 > t && s.kind !== "egress");
-  $("h-next").textContent = !next ? "Inside" : next.kind === "walk" ? `Walk to ${next.to ? S.targets[next.to - 1].name : "habitat"} · ${mins(next.t1 - t)}` : next.kind === "station" ? `On station: ${next.label} · ${mins(next.t1 - t)} left` : next.label;
-  const sw = S.swNow; $("h-sw").textContent = sw.level.toUpperCase(); $("h-sw").className = sw.level === "quiet" ? "margin-ok" : sw.level === "watch" ? "margin-low" : "margin-bad";
-  S.me.setLatLng(cellToLL(S.T, cell)).addTo(S.M.map);
+  $("h-next").textContent = !next ? "Inside" : next.kind === "walk" ? `Walk to ${next.to ? S.targets[next.to - 1].name : homeName()} · ${mins(next.t1 - t)}` : next.kind === "station" ? `On station: ${next.label} · ${mins(next.t1 - t)} left` : next.label;
+  const sw = S.swNow; $("h-sw").textContent = sw.level.toUpperCase(); $("h-sw").className = "badge " + sw.level;
+  const ll = cellToLL(S.T, cell);
+  S.me.setLatLng(ll).addTo(S.M.map);
+  if (S.mode === "go") followMe(L.latLng(ll));
+  const hc = $("hudChart");
+  if (hc && hc.offsetParent) walkbackChart(hc, p, S.K, null, t);
   if (S.v3) S.v3.setWalker(cell, t);
 }
 let walkTimer = 0;
@@ -534,7 +628,8 @@ export function renderAbort() {
   $("a-dist").textContent = `${(d / 1000).toFixed(2)} km`;
   $("a-head").textContent = `${brg.toFixed(0)}° ${["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round(brg / 45) % 8]}`;
   const lim = S.lim, sw = S.swNow;
-  $("a-note").innerHTML = `Least-effort route to ${dest} (red dashed). Background radiation during the walk ≈ ${(0.64 * eta / 86400).toFixed(3)} mSv (RAD baseline). ` +
+  $("a-sw").textContent = sw.level.toUpperCase(); $("a-sw").className = "badge " + sw.level;
+  $("a-note").innerHTML = `Follow the red dashed line: least-effort route to ${dest}. Background radiation during the walk ≈ ${(0.64 * eta / 86400).toFixed(3)} mSv (RAD baseline). ` +
     (sw.level !== "quiet" ? `<b>${sw.level.toUpperCase()}:</b> ` + (lim != null && eta > lim * 60 ? `this position is <b>${mins(eta - lim * 60)} beyond</b> the ${lim}-min shelter limit. Walkback keeps planned routes inside the limit so this does not happen; consider a closer safe haven (rover).` : `shelter reachable within the ${lim}-min limit.`) : "") +
     ` Buddy-assisted ETA assumes ${Math.round(f * 100)}% pace (assumption). Click the map to abort from another point.`;
   if (S.v3) S.v3.update(S);
@@ -547,10 +642,10 @@ export function computeFound() {
   const res = lv.map(([n, lim]) => { const r = planFor({ level: n.toLowerCase(), caseName: "central", limit: lim }); return { n, lim, r }; });
   const nT = S.targets.length;
   const reach = (lim) => S.targets.filter((t, i) => { const wb = S.WB.T[S.cells[i]] / v; return isFinite(wb) && (lim == null || wb <= lim * 60) && wb * 2 + 3600 <= S.policy.params.eva_planned_h.value * 3600; }).length;
-  $("found").innerHTML = `<table class="found-table"><tr><th>Space weather</th><th>Shelter limit</th><th>Targets reachable*</th><th>Planned stops</th><th>Science value</th><th>EVA</th></tr>` +
-    res.map(({ n, lim, r }) => `<tr><td>${n}</td><td>${lim == null ? "consumables only" : lim + " min"}</td><td>${reach(lim)} / ${nT}</td><td>${r.plan ? r.plan.order.length : 0}</td><td>${r.best.value}</td><td>${r.plan ? hm(r.plan.totalS) : "–"}</td></tr>`).join("") +
+  $("found").innerHTML = `<table class="found-table"><tr><th>Alert</th><th>Shelter limit</th><th>Reachable*</th><th>Stops</th><th>Value</th><th>EVA</th></tr>` +
+    res.map(({ n, lim, r }) => `<tr><td><span class="badge ${n.toLowerCase()}">${n.toUpperCase()}</span></td><td>${lim == null ? "none" : lim + " min"}</td><td>${reach(lim)} / ${nT}</td><td>${r.plan ? r.plan.order.length : 0}</td><td>${r.best.value}</td><td>${r.plan ? hm(r.plan.totalS) : "–"}</td></tr>`).join("") +
     `</table><small class="mut">*single out-and-back trip fits the ${S.policy.params.eva_planned_h.value} h EVA with 1 h for station and airlock. Central effort case, start ${fmtH(S.startLtst)} LTST${S.roverOn ? ", with rover safe haven" : ""}.</small>` +
-    `<h3>Walk-back time from each target</h3><table class="found-table">${S.targets.map((t, i) => { const wb = S.WB.T[S.cells[i]] / v; return `<tr><td>${esc(t.name)}</td><td>${isFinite(wb) ? hm(wb) : "–"}</td><td>${((S.T.H[S.cells[i]] || 0) * 100).toFixed(0)} hazard</td></tr>`; }).join("")}</table>`;
+    `<h3>Walk-back time from each target</h3><table class="found-table"><tr><th>Target</th><th>Walk-back</th><th>Terrain hazard</th></tr>${S.targets.map((t, i) => { const wb = S.WB.T[S.cells[i]] / v; return `<tr><td>${esc(t.name)}</td><td>${isFinite(wb) ? hm(wb) : "–"}</td><td>${((S.T.H[S.cells[i]] || 0) * 100).toFixed(0)} / 100</td></tr>`; }).join("")}</table>`;
   S.found = res.map(({ n, lim, r }) => ({ level: n, limit: lim, stops: r.plan ? r.plan.order.map((j) => S.targets[j - 1].id) : [], value: r.best.value, evaS: r.plan ? r.plan.totalS : 0 }));
 }
 

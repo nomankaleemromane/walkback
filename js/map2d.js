@@ -13,21 +13,24 @@ export const TREK_LAYERS = {
 };
 
 export function createMap(el, site, { onTileError } = {}) {
-  const map = L.map(el, { crs: L.CRS.EPSG4326, center: site.center, zoom: 11, minZoom: 3, maxZoom: 17, zoomSnap: 0.5, attributionControl: true, preferCanvas: true });
+  const map = L.map(el, { crs: L.CRS.EPSG4326, center: site.center, zoom: 11, minZoom: 3, maxZoom: 17, zoomSnap: 1, zoomDelta: 1, attributionControl: true, preferCanvas: true });
   map.attributionControl.setPrefix(false);
-  const trek = ([label, id, nz, ext], bounds = null) => {
-    const l = L.tileLayer(`${TREK(id)}.${ext}`, { maxNativeZoom: nz, maxZoom: 17, noWrap: true, attribution: "NASA Mars Trek", ...(bounds ? { bounds } : {}) });
+  map.createPane("context").style.zIndex = 150;
+  map.createPane("underlay").style.zIndex = 160;
+  const trek = ([label, id, nz, ext], bounds = null, pane = "tilePane") => {
+    const l = L.tileLayer(`${TREK(id)}.${ext}`, { maxNativeZoom: nz, maxZoom: 17, noWrap: true, attribution: "NASA Mars Trek", pane, keepBuffer: 4, ...(bounds ? { bounds } : {}) });
     l.on("tileerror", (e) => onTileError && onTileError(id, e));
     return l;
   };
   const bounds = [[site.south, site.west], [site.north, site.east]];
   const bases = {};
   for (const [k, v] of Object.entries(site.layers || {})) bases[k] = { label: v[0] + " (NASA Trek)", kind: v[4], make: () => trek(v, bounds) };
-  bases.local = { label: "Offline image snapshot (site pack)", kind: "optical", make: () => L.imageOverlay(`data/sites/${site.id}/texture.jpg`, bounds, { attribution: (site.texture_source || "").split(",")[0] }) };
+  bases.local = { label: "Offline image snapshot (site pack)", kind: "optical", make: () => L.imageOverlay(`data/sites/${site.id}/${site.texture_map || "texture.jpg"}`, bounds, { attribution: (site.texture_source || "").split(",")[0] }) };
   bases.viking = { label: TREK_LAYERS.viking[0] + " (NASA Trek)", kind: "optical", make: () => trek(TREK_LAYERS.viking) };
   bases.blend = { label: TREK_LAYERS.blend[0] + " (NASA Trek)", kind: "topographic", make: () => trek(TREK_LAYERS.blend) };
-  const context = trek(TREK_LAYERS.viking); // regional context under everything
-  context.setZIndex(1).addTo(map);
+  trek(TREK_LAYERS.viking, null, "context").addTo(map); // regional context under everything
+  // the site's own orthoimage under the NASA Trek tiles: no dark gaps while tiles stream in, and it works offline
+  if (Object.keys(site.layers || {}).length) L.imageOverlay(`data/sites/${site.id}/texture.jpg`, bounds, { pane: "underlay", interactive: false }).addTo(map);
   let base = null;
   const setBase = (k) => { if (base) map.removeLayer(base); base = bases[k].make(); base.addTo(map); if (base.setZIndex) base.setZIndex(2); };
   map.fitBounds(bounds);
@@ -110,18 +113,22 @@ export function geoColor(T, traffic) {
     return true;
   };
 }
-// walk-back isochrones (minutes) with the active limit boundary emphasised
+// walk-back time: inside the limit stays clear (light green tint), outside is dimmed,
+// 30-min isochrone contours, and the active limit boundary is drawn bright white.
 export function walkbackColor(T, WB, v, limitS) {
+  const w = T.w, band = (k) => Math.floor(WB.T[k] / v / 1800);
   return (k, px) => {
     if (T.slope[k] < 0) return false;
     const t = WB.T[k] / v;
-    if (!isFinite(t)) { px[0] = 10; px[1] = 10; px[2] = 10; px[3] = 170; return true; }
-    const band = Math.floor(t / 1800); // 30-min bands
+    if (!isFinite(t)) { px[0] = 0; px[1] = 0; px[2] = 0; px[3] = 170; return true; }
     const inside = t <= limitS;
-    const edge = Math.abs(t - limitS) < 70; // ~ one cell at 2 km/h
-    if (edge) { px[0] = 255; px[1] = 255; px[2] = 255; px[3] = 255; return true; }
-    const [r, g, b] = inside ? ramp([[40, 200, 110], [160, 220, 90]], t / Math.max(1, limitS)) : ramp([[240, 150, 60], [200, 40, 40]], Math.min(1, (t - limitS) / 7200));
-    px[0] = r; px[1] = g; px[2] = b; px[3] = (inside ? 70 : 120) + (band % 2) * 30;
+    // boundary: a neighbour on the other side of the limit
+    const x = k % w;
+    const nb = [k - 1, k + 1, k - w, k + w].filter((q) => q >= 0 && q < T.n && Math.abs((q % w) - x) <= 1);
+    if (inside && nb.some((q) => isFinite(WB.T[q]) && WB.T[q] / v > limitS)) { px[0] = 255; px[1] = 255; px[2] = 255; px[3] = 245; return true; }
+    if (t < limitS + 5400 && nb.some((q) => isFinite(WB.T[q]) && band(q) > band(k))) { px[0] = 255; px[1] = 255; px[2] = 255; px[3] = inside ? 46 : 26; return true; }
+    if (inside) { px[0] = 60; px[1] = 210; px[2] = 120; px[3] = 34; return true; }
+    px[0] = 25; px[1] = 8; px[2] = 6; px[3] = 125 + Math.min(60, (t - limitS) / 120);
     return true;
   };
 }
@@ -133,7 +140,7 @@ export function legendHTML(kind, ctx) {
     case "slope": return `<b>Max slope (20 m DEM)</b><div class="ramp" style="background:${rampCss(GYR)}"></div><small>0° … ${ctx.maxS}°</small><br><span class="sw2" style="background:rgb(150,30,200)"></span>steeper than ${ctx.maxS}° (never exceed)`;
     case "ti": return `<b>Thermal inertia</b> (TIU)<div class="ramp" style="background:${rampCss(TI_RAMP)}"></div><small>150 loose/fine … 400 rocky</small>`;
     case "geo": return `<b>Photogeologic units</b> (Stack et al. 2020)<br>` + Object.entries({ ...GEO_COLORS.surf, "Delta blocky": GEO_COLORS.bed["Delta blocky"], "Crater rim blocky": GEO_COLORS.bed["Crater rim blocky"], "Crater floor fractured rough": GEO_COLORS.bed["Crater floor fractured rough"], "Crater floor fractured 1": GEO_COLORS.bed["Crater floor fractured 1"], "Margin fractured": GEO_COLORS.bed["Margin fractured"] }).map(([n, c]) => `<span class="sw2" style="background:rgb(${c})"></span>${n}`).join("<br>");
-    case "wb": return `<b>Walk-back time to shelter</b><br><span class="sw2" style="background:rgb(60,200,110)"></span>inside the limit · <span class="sw2" style="background:rgb(220,90,50)"></span>outside<br><span class="sw2" style="background:#fff"></span>limit boundary (${ctx.limitMin} min) · bands = 30 min`;
+    case "wb": return `<b>Walk-back time to shelter</b><br><span class="sw2" style="background:rgba(60,210,120,.6)"></span>reachable within ${ctx.limitMin} min<br><span class="sw2" style="background:#2a0d09"></span>beyond the limit (dimmed)<br><span class="sw2" style="background:#fff"></span>limit edge · thin lines every 30 min`;
     default: return "";
   }
 }

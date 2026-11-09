@@ -82,15 +82,15 @@ export function profileChart(cv, T, plan, K) {
 export function tempChart(cv, bin, hours, startH, endH, sun) {
   const { g, w, h } = setup(cv);
   if (!bin) { g.fillStyle = C.text; g.fillText("No MEDA climatology for this season.", 10, 20); return; }
-  const L = 36, PW = w - L - 8, PH = h - 34, T0 = -100, T1 = 10;
+  const L = 38, PW = w - L - 10, PH = h - 40, T0 = -100, T1 = 10;
   const X = (hh) => L + (hh / 24) * PW, Y = (t) => 10 + PH - ((t - T0) / (T1 - T0)) * PH;
   // night shading
   g.fillStyle = "rgba(0,0,0,.35)"; g.fillRect(X(0), 10, X(sun.rise) - X(0), PH); g.fillRect(X(sun.set), 10, X(24) - X(sun.set), PH);
   // EVA window
   g.fillStyle = "rgba(255,154,92,.18)"; g.fillRect(X(startH), 10, X(Math.min(24, endH)) - X(startH), PH);
   g.strokeStyle = C.grid; g.fillStyle = C.text;
-  for (let t = -100; t <= 0; t += 20) { g.beginPath(); g.moveTo(L, Y(t)); g.lineTo(L + PW, Y(t)); g.stroke(); g.fillText(t + "°", 4, Y(t) + 4); }
-  for (let hh = 0; hh <= 24; hh += 3) g.fillText(String(hh).padStart(2, "0"), X(hh) - 6, h - 18);
+  for (let t = -80; t <= 0; t += 20) { g.beginPath(); g.moveTo(L, Y(t)); g.lineTo(L + PW, Y(t)); g.stroke(); g.fillText(t + "°", 4, Y(t) + 4); }
+  for (let hh = 0; hh <= 24; hh += 3) g.fillText(String(hh).padStart(2, "0"), Math.min(X(hh) - 6, w - 16), 10 + PH + 13);
   const pts = bin.temp_c_by_ltst.map((v, i) => [hours[i] + 0.25, v]).filter(([, v]) => v);
   g.fillStyle = "rgba(51,214,255,.18)"; g.beginPath();
   pts.forEach(([x, v], i) => (i ? g.lineTo(X(x), Y(v[2])) : g.moveTo(X(x), Y(v[2]))));

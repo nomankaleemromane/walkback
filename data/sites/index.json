@@ -1,4 +1,14 @@
-{ "sites": [
-  { "id": "jezero", "name": "Jezero crater (Perseverance)", "full": true },
-  { "id": "gale", "name": "Gale crater (Curiosity) - terrain-only pack", "full": false }
-] }
+{
+ "sites": [
+  {
+   "id": "jezero",
+   "name": "Jezero \u00b7 Perseverance",
+   "full": true
+  },
+  {
+   "id": "gale",
+   "name": "Gale \u00b7 Curiosity (terrain only)",
+   "full": false
+  }
+ ]
+}

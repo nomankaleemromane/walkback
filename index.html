@@ -7,7 +7,7 @@
 <meta name="description" content="Walkback: the Mars EVA planner that always knows the way home. A layered, integrated Marswalk route planner for Jezero crater built on NASA data.">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<meta name="theme-color" content="#120c09">
+<meta name="theme-color" content="#0f0a08">
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 <link rel="stylesheet" href="css/app.css">
 <script type="importmap">{ "imports": { "three": "./vendor/three/three.module.min.js" } }</script>
@@ -17,15 +17,15 @@
   <div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M9 21c3-8 7-11 14-11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M19 7l4 3-3 4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     <div><b>Walkback</b><span>Mars EVA planner that always knows the way home</span></div></div>
   <nav class="modes" role="tablist" aria-label="Mode">
-    <button role="tab" data-mode="plan" aria-selected="true">Plan</button>
-    <button role="tab" data-mode="go">Go</button>
-    <button role="tab" data-mode="abort" class="abort">Abort</button>
+    <button role="tab" data-mode="plan" aria-selected="true" title="Plan the Marswalk (1)">Plan</button>
+    <button role="tab" data-mode="go" aria-selected="false" title="Live EVA view (2)">Go</button>
+    <button role="tab" data-mode="abort" aria-selected="false" class="abort" title="Walk back now (3)">Abort</button>
   </nav>
   <div class="tools">
-    <select id="siteSel" aria-label="Site" class="ghost"></select>
+    <select id="siteSel" aria-label="Site"></select>
     <button id="view3d" class="ghost" title="Toggle 2D / 3D view (V)">3D</button>
     <button id="demo" class="ghost" title="Run the demo scenario">▶ Demo</button>
-    <span id="net" class="pill" title="Data status">…</span>
+    <span id="net" class="pill" title="Data status" role="status">…</span>
   </div>
 </header>
 
@@ -33,45 +33,47 @@
   <section id="stage">
     <div id="map" aria-label="Marswalk map"></div>
     <div id="view3" hidden></div>
-    <div id="ro" aria-live="off">hover the map</div>
+    <div id="ro" aria-live="off">Hover the map for terrain details</div>
     <div id="legend" class="legend"></div>
-    <div id="caption" hidden></div>
-    <!-- Go / Abort HUD -->
-    <div id="hud" hidden>
-      <div class="hud-row">
-        <div class="hud-cell"><small>EVA clock</small><b id="h-clock">–</b></div>
+    <div id="caption" hidden role="status"></div>
+    <div id="loading" role="status"><div class="spin" aria-hidden="true"></div><p id="loadMsg">Loading terrain…</p></div>
+    <!-- Go HUD -->
+    <div id="hud" class="hud" hidden>
+      <div class="hud-head"><span class="hud-title">Live EVA</span><span id="h-sw" class="badge">–</span></div>
+      <div class="hud-grid">
+        <div class="hud-cell"><small>EVA clock</small><b id="h-clock">–</b><small id="h-clock2" class="sub"></small></div>
         <div class="hud-cell"><small>To shelter now</small><b id="h-wb">–</b></div>
         <div class="hud-cell"><small>Allowed now</small><b id="h-lim">–</b></div>
         <div class="hud-cell"><small>Margin</small><b id="h-mar">–</b></div>
-      </div>
-      <div class="hud-row">
         <div class="hud-cell wide"><small>Next</small><b id="h-next">–</b></div>
-        <div class="hud-cell"><small>Space weather</small><b id="h-sw">–</b></div>
       </div>
-      <label class="hud-slider">Position along plan (simulated) <input id="goT" type="range" min="0" max="1000" value="0" aria-label="Simulated EVA time"></label>
-      <div class="hud-row">
+      <label class="hud-slider"><span>Position along plan (simulated)</span><input id="goT" type="range" min="0" max="1000" value="0" aria-label="Simulated EVA time"></label>
+      <div class="hud-chart"><small>Time to shelter (blue) vs limits · white line = now</small><canvas id="hudChart" width="640" height="200" aria-label="Walk-back margin"></canvas></div>
+      <div class="hud-actions">
         <button id="goPlay" class="big">▶ Walk</button>
-        <button id="goAbort" class="big danger">ABORT · walk back</button>
+        <button id="goAbort" class="big danger" title="Walk back to the nearest shelter now">⚠ ABORT</button>
       </div>
     </div>
-    <div id="abortCard" hidden>
-      <h2>Walk back now</h2>
-      <div class="hud-row">
+    <!-- Abort card -->
+    <div id="abortCard" class="hud abort" hidden>
+      <div class="hud-head"><span class="hud-title">Walk back now</span><span id="a-sw" class="badge">–</span></div>
+      <div class="hud-grid">
         <div class="hud-cell"><small>ETA to shelter</small><b id="a-eta">–</b></div>
-        <div class="hud-cell"><small>Buddy-assisted ETA</small><b id="a-eta2">–</b></div>
+        <div class="hud-cell"><small>Buddy-assisted</small><b id="a-eta2">–</b></div>
         <div class="hud-cell"><small>Distance</small><b id="a-dist">–</b></div>
         <div class="hud-cell"><small>Heading</small><b id="a-head">–</b></div>
       </div>
-      <p id="a-note" class="mut"></p>
-      <div class="hud-row"><button id="abortResume" class="big">Back to Go</button></div>
+      <p id="a-note" class="hud-note"></p>
+      <div class="hud-actions"><button id="abortResume" class="big">Back to Go</button></div>
     </div>
   </section>
 
   <aside id="side" aria-label="Planner">
-    <!-- current conditions -->
-    <section class="card" id="c-now">
-      <h2>Current conditions · <span id="siteName">Jezero</span></h2>
-      <div class="kv" id="nowKv"></div>
+    <section id="summary">
+      <div class="verdict-row">
+        <span id="v" class="verdict" role="status">–</span>
+        <div class="vtext"><b id="vTitle">Planning…</b><small id="vBind"></small></div>
+      </div>
       <div class="sw">
         <span id="swb" class="badge">–</span>
         <select id="swm" aria-label="Space weather scenario">
@@ -80,88 +82,109 @@
           <option value="watch">Scenario: Watch (CME in ~48 h)</option>
           <option value="warning">Scenario: Warning (CME in ~10 h)</option>
         </select>
+        <span id="swLim" class="small mut"></span>
       </div>
-      <p id="swt" class="mut small"></p>
     </section>
+    <nav class="tabs" role="tablist" aria-label="Panels">
+      <button role="tab" data-tab="plan" aria-selected="true">Plan</button>
+      <button role="tab" data-tab="stops" aria-selected="false">Stops</button>
+      <button role="tab" data-tab="conditions" aria-selected="false">Conditions</button>
+      <button role="tab" data-tab="layers" aria-selected="false">Layers</button>
+      <button role="tab" data-tab="evidence" aria-selected="false">Evidence</button>
+      <button role="tab" data-tab="sources" aria-selected="false">Sources</button>
+    </nav>
 
-    <!-- verdict -->
-    <section class="card" id="c-verdict">
-      <div class="verdict-row"><span id="v" class="verdict">–</span><div><b id="vTitle">Planning…</b><small id="vBind" class="mut"></small></div></div>
-      <ul id="checks" class="checks"></ul>
-      <div id="dropped" class="dropped"></div>
-    </section>
+    <div class="tabpanel" data-tab="plan">
+      <section class="card">
+        <h2>Checks</h2>
+        <ul id="checks" class="checks"></ul>
+        <div id="dropped" class="dropped"></div>
+      </section>
+      <section class="card" id="c-plan">
+        <h2>Marswalk plan</h2>
+        <div class="row"><label for="start">EVA start <small class="mut">local solar time</small></label><b id="startV" class="val">09:00</b><input id="start" type="range" min="6" max="16" step="0.25" value="9"></div>
+        <div class="row"><label for="case">Effort &amp; pace case</label>
+          <select id="case"><option value="low">Low (optimistic)</option><option value="central" selected>Central</option><option value="high">High (pessimistic)</option></select></div>
+        <div class="row"><label for="radlim">Shelter limit override</label>
+          <select id="radlim"><option value="">From space weather</option><option value="none">None</option><option value="120">120 min</option><option value="90">90 min</option><option value="60">60 min</option><option value="30">30 min</option><option value="15">15 min</option></select></div>
+        <div class="stats" id="planStats"></div>
+      </section>
+      <section class="card">
+        <h2>Walk-back margin <small class="mut">time to shelter vs what the limits allow</small></h2>
+        <canvas id="wbChart" width="640" height="220" aria-label="Walk-back margin chart"></canvas><div class="chart-legend"></div>
+      </section>
+      <section class="card">
+        <h2>Timeline</h2>
+        <ol id="timeline" class="timeline"></ol>
+        <h3>Elevation profile</h3>
+        <canvas id="profChart" width="640" height="140" aria-label="Elevation profile"></canvas>
+      </section>
+      <section class="card" id="c-rover"></section>
+      <section class="card" id="c-sens">
+        <h2>Sensitivity <small class="mut">does the plan survive the model's uncertainty?</small></h2>
+        <table class="sens" id="sens"></table>
+        <p class="mut small">Same route and stops, re-checked with each effort/pace case. Effort is an index from Earth data, not a flight value.</p>
+      </section>
+      <section class="card" id="c-export">
+        <h2>Export plan</h2>
+        <div class="row btns"><button id="exGeo">GeoJSON</button><button id="exGpx">GPX</button><button id="exCard">EVA card (PDF)</button></div>
+        <p class="mut small">Open formats so the plan can go into other GIS and EVA tools.</p>
+      </section>
+    </div>
 
-    <!-- plan controls -->
-    <section class="card" id="c-plan">
-      <h2>Marswalk plan</h2>
-      <div class="row"><label for="start">EVA start (local solar time) <b id="startV">09:00</b></label><input id="start" type="range" min="6" max="16" step="0.25" value="9"></div>
-      <div class="row"><label for="case">Effort &amp; pace case</label>
-        <select id="case"><option value="low">Low (optimistic)</option><option value="central" selected>Central</option><option value="high">High (pessimistic)</option></select></div>
-      <div class="row"><label for="radlim">Radiation shelter limit override</label>
-        <select id="radlim"><option value="">From space weather</option><option value="none">None</option><option value="120">120 min</option><option value="90">90 min</option><option value="60">60 min</option><option value="30">30 min</option><option value="15">15 min</option></select></div>
-      <div class="stats" id="planStats"></div>
-      <h3>Timeline</h3>
-      <ol id="timeline" class="timeline"></ol>
-      <h3>Walk-back margin <small class="mut">time to shelter vs what the limits allow</small></h3>
-      <canvas id="wbChart" width="640" height="220" aria-label="Walk-back margin chart"></canvas><div class="chart-legend"></div>
-      <h3>Elevation profile</h3>
-      <canvas id="profChart" width="640" height="140" aria-label="Elevation profile"></canvas>
-    </section>
+    <div class="tabpanel" data-tab="stops" hidden>
+      <section class="card" id="c-targets">
+        <h2>Science objectives &amp; stops</h2>
+        <p class="mut small">Tick the stops to consider; the planner picks and orders them. Click a name for its rationale, source and Perseverance images.</p>
+        <div id="objectives"></div>
+      </section>
+    </div>
 
-    <!-- science objectives and stops -->
-    <section class="card" id="c-targets">
-      <h2>Science objectives &amp; stops</h2>
-      <div id="objectives"></div>
-    </section>
+    <div class="tabpanel" data-tab="conditions" hidden>
+      <section class="card" id="c-now">
+        <h2>Current conditions · <span id="siteName">Jezero</span></h2>
+        <div class="kv" id="nowKv"></div>
+      </section>
+      <section class="card">
+        <h2>Space weather</h2>
+        <p id="swt" class="small"></p>
+        <details class="more"><summary>Why this is a proxy</summary><p id="swMore" class="small mut"></p></details>
+      </section>
+      <section class="card" id="c-window">
+        <h2>Best EVA window <small class="mut">MEDA climatology for this season</small></h2>
+        <canvas id="tempChart" width="640" height="250" aria-label="Temperature and daylight chart"></canvas>
+        <p id="windowNote" class="mut small"></p>
+      </section>
+    </div>
 
-    <!-- conditions / weather window -->
-    <section class="card" id="c-window">
-      <h2>Best EVA window <small class="mut">MEDA climatology for this season</small></h2>
-      <canvas id="tempChart" width="640" height="200" aria-label="Temperature and daylight chart"></canvas>
-      <p id="windowNote" class="mut small"></p>
-    </section>
+    <div class="tabpanel" data-tab="layers" hidden>
+      <section class="card" id="c-layers">
+        <h2>Layered, integrated view</h2>
+        <div class="row"><label for="base">Base map</label><select id="base"></select></div>
+        <div id="overlays" class="overlays"></div>
+        <div class="row"><label for="ovOp">Overlay opacity</label><input id="ovOp" type="range" min="10" max="100" value="80"></div>
+        <p class="mut small" id="layerNote">Each overlay's tag names its data type; hover it to see how it changes the plan.</p>
+      </section>
+    </div>
 
-    <!-- sensitivity -->
-    <section class="card" id="c-sens">
-      <h2>Sensitivity <small class="mut">does the plan survive the model's uncertainty?</small></h2>
-      <table class="sens" id="sens"></table>
-      <p class="mut small">Same route and stops, re-checked with each effort/pace case. Effort is an index from Earth data, not a flight value.</p>
-    </section>
+    <div class="tabpanel" data-tab="evidence" hidden>
+      <section class="card" id="c-found">
+        <h2>What Walkback found</h2>
+        <div id="found"><small class="mut">Computing…</small></div>
+      </section>
+      <section class="card" id="c-backtest">
+        <h2>Perseverance backtest</h2>
+        <div id="backtest"><small class="mut">Loading…</small></div>
+      </section>
+    </div>
 
-    <!-- layers -->
-    <section class="card" id="c-layers">
-      <h2>Layered, integrated view</h2>
-      <div class="row"><label for="base">Base map</label><select id="base"></select></div>
-      <div id="overlays" class="overlays"></div>
-      <div class="row"><label for="ovOp">Overlay opacity</label><input id="ovOp" type="range" min="10" max="100" value="65"></div>
-      <p class="mut small" id="layerNote"></p>
-    </section>
-
-    <!-- evidence -->
-    <section class="card" id="c-found">
-      <h2>What Walkback found at Jezero</h2>
-      <div id="found"><small class="mut">Computing…</small></div>
-    </section>
-
-    <!-- backtest -->
-    <section class="card" id="c-backtest">
-      <h2>Perseverance backtest</h2>
-      <div id="backtest"><small class="mut">Loading…</small></div>
-    </section>
-
-    <!-- exports -->
-    <section class="card" id="c-export">
-      <h2>Export plan</h2>
-      <div class="row btns"><button id="exGeo">GeoJSON</button><button id="exGpx">GPX</button><button id="exCard">Print EVA card (PDF)</button></div>
-      <p class="mut small">Open formats so the plan can go into other GIS and EVA tools.</p>
-    </section>
-
-    <!-- assumptions -->
-    <details class="card" id="c-assume">
-      <summary><h2>Assumptions, limits &amp; sources</h2></summary>
-      <div id="assume"></div>
-    </details>
-    <footer class="credits" id="credits"></footer>
+    <div class="tabpanel" data-tab="sources" hidden>
+      <section class="card" id="c-assume">
+        <h2>Assumptions, limits &amp; sources</h2>
+        <div id="assume"></div>
+      </section>
+      <footer class="credits" id="credits"></footer>
+    </div>
   </aside>
 </main>
 <div id="printCard" hidden></div>

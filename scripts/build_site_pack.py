@@ -164,6 +164,13 @@ def main(cfg_path):
         hs = np.nan_to_num(np.clip(hs, 0, 1) * 255)
         img = Image.fromarray(hs.astype(np.uint8), "L").resize((tex_w, tex_h), Image.BILINEAR)
     img.convert("RGB").save(os.path.join(out, "texture.jpg"), quality=82, optimize=True)
+    # 2D map copy with no-data (pure black) made transparent, so gaps show the context map
+    rgba = img.convert("RGBA"); arr = np.asarray(rgba).copy()
+    nodata = arr[..., :3].max(-1) == 0
+    if nodata.any():
+        arr[nodata, 3] = 0
+        Image.fromarray(arr, "RGBA").save(os.path.join(out, "texture_map.webp"), quality=80)
+        print(f"no-data share {nodata.mean():.0%}: wrote texture_map.webp")
 
     site = {
         "id": cfg["id"], "name": cfg["name"],
@@ -174,6 +181,7 @@ def main(cfg_path):
         "center": cfg.get("center", [(north + south) / 2, (east + west) / 2]),
         "dem_source": cfg.get("dem_credit", cfg["dem_url"]), "dem_url": cfg["dem_url"],
         "texture_source": tex_src,
+        "texture_map": "texture_map.webp" if os.path.exists(os.path.join(out, "texture_map.webp")) else "texture.jpg",
         "layers": cfg.get("layers", {}),
         "extras": cfg.get("extras", []),
         "rasters": {"dem": "dem.bin", "slope": "slope.bin", "rough": "rough.bin"},

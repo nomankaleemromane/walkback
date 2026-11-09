@@ -24,6 +24,7 @@
  "dem_source": "MSL Gale DEM mosaic 1 m v3 (USGS Astrogeology; HiRISE stereo, NASA/JPL/UArizona), read at 20 m",
  "dem_url": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSL/MSL_Gale_DEM_Mosaic_1m_v3.tif",
  "texture_source": "MSL Gale HiRISE LRGB mosaic (USGS Astrogeology; HiRISE NASA/JPL/UArizona)",
+ "texture_map": "texture_map.webp",
  "layers": {},
  "extras": [
   "targets"

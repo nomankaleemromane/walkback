@@ -141,7 +141,14 @@ export async function create3D(el, S) {
       const ph = pv ? 25 : inPlan ? 260 : 120;
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(pv ? 0.8 : 6, pv ? 0.8 : 6, ph, 8), new THREE.MeshBasicMaterial({ color: objCol[t.objective] || 0xffffff, transparent: !inPlan, opacity: inPlan ? 1 : 0.45 }));
       pole.position.set(x, y + ph / 2, z); group.add(pole);
-      if (inPlan) { const l = label(`${p.order.indexOf(i + 1) + 1}. ${t.name}`); l.position.set(x, y + (pv ? 30 : 330), z); if (pv) l.scale.multiplyScalar(0.012); group.add(l); }
+      if (inPlan) {
+        const k = p.order.indexOf(i + 1);
+        const near = p.order.map((j, q) => [S.targets[j - 1], q]).filter(([u]) => Math.hypot((u.lat - t.lat) * 59200, (u.lon - t.lon) * 56200) < 250);
+        if (near[0][1] === k) { // first stop of its cluster carries the label
+          const txt = near.length > 1 ? `${near[0][1] + 1}–${near[near.length - 1][1] + 1}. ${t.name} +${near.length - 1}` : `${k + 1}. ${t.name}`;
+          const l = label(txt); l.position.set(x, y + (pv ? 30 : 330), z); if (pv) l.scale.multiplyScalar(0.012); group.add(l);
+        }
+      }
     });
     const [hx, hz] = cellXZ(S.home);
     const dome = new THREE.Mesh(new THREE.SphereGeometry(40, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshLambertMaterial({ color: 0xf2f2f2 }));
