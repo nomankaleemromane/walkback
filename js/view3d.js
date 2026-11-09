@@ -110,21 +110,30 @@ export async function create3D(el, S) {
   setSun(S.startLtst + 1);
 
   // ---- route, abort path, stops
-  const surfaceY = (x, z) => { // bilinear height at world x,z
-    const fi = x / T.cx + w / 2 - 0.5, fj = z / T.cy + h / 2 - 0.5;
-    const i0 = Math.max(0, Math.min(w - 2, Math.floor(fi))), j0 = Math.max(0, Math.min(h - 2, Math.floor(fj))), u = fi - i0, v = fj - j0;
+  // Height of the rendered terrain at world x,z: same vertex positions (vertex i sits at X(i))
+  // and the same triangle split as the mesh (a,c,b) + (b,c,d), so objects sit exactly on it.
+  const surfaceY = (x, z) => {
+    const fi = x / T.cx + w / 2, fj = z / T.cy + h / 2;
+    const i0 = Math.max(0, Math.min(w - 2, Math.floor(fi))), j0 = Math.max(0, Math.min(h - 2, Math.floor(fj)));
+    const u = Math.max(0, Math.min(1, fi - i0)), v = Math.max(0, Math.min(1, fj - j0));
     const k = j0 * w + i0, z00 = zAt(k), z10 = zAt(k + 1), z01 = zAt(k + w), z11 = zAt(k + w + 1);
-    return ((z00 * (1 - u) + z10 * u) * (1 - v) + (z01 * (1 - u) + z11 * u) * v - zmin) * exag;
+    const zz = u + v <= 1 ? z00 + u * (z10 - z00) + v * (z01 - z00) : z11 + (1 - u) * (z01 - z11) + (1 - v) * (z10 - z11);
+    return (zz - zmin) * exag;
   };
   const cellXZ = (k) => [X(k % w), Zc((k / w) | 0)];
   const group = new THREE.Group(); scene.add(group);
   const tube = (cells, color, r, lift = 4) => {
     if (!cells || cells.length < 2) return null;
-    const pts = [];
-    for (let i = 0; i < cells.length; i++) { const [x, z] = cellXZ(cells[i]); pts.push(new THREE.Vector3(x, surfaceY(x, z) + lift, z)); }
+    // sample the ground every few metres between cells so the line follows every rise and dip
+    const thin = r < 1, stepM = thin ? 3 : 15, pts = [];
+    for (let i = 0; i < cells.length - 1; i++) {
+      const [x0, z0] = cellXZ(cells[i]), [x1, z1] = cellXZ(cells[i + 1]);
+      const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, z1 - z0) / stepM));
+      for (let s = 0; s < n; s++) { const x = x0 + ((x1 - x0) * s) / n, z = z0 + ((z1 - z0) * s) / n; pts.push(new THREE.Vector3(x, surfaceY(x, z) + lift, z)); }
+    }
+    const [xe, ze] = cellXZ(cells[cells.length - 1]); pts.push(new THREE.Vector3(xe, surfaceY(xe, ze) + lift, ze));
     const curve = new THREE.CatmullRomCurve3(pts, false, "centripetal");
-    const thin = r < 1; // astronaut view: a slim, slightly see-through guide line on the ground
-    return new THREE.Mesh(new THREE.TubeGeometry(curve, Math.min(2000, pts.length * 3), r, 6, false), new THREE.MeshBasicMaterial({ color, transparent: thin, opacity: thin ? 0.7 : 1 }));
+    return new THREE.Mesh(new THREE.TubeGeometry(curve, Math.min(8000, pts.length * 2), r, 6, false), new THREE.MeshBasicMaterial({ color, transparent: thin, opacity: thin ? 0.75 : 1 }));
   };
   const label = (text, color = "#fff") => {
     const c = document.createElement("canvas"), g = c.getContext("2d"); g.font = "bold 44px system-ui";
@@ -137,7 +146,7 @@ export async function create3D(el, S) {
   function rebuild() {
     group.clear();
     const p = S.plan, pv = mode === "pov";
-    const r = tube(p && p.path, 0x33d6ff, pv ? 0.09 : 7, pv ? 0.12 : 4); if (r) group.add(r);
+    const r = tube(p && p.path, 0x33d6ff, pv ? 0.09 : 7, pv ? 0.2 : 4); if (r) group.add(r);
     if (S.mode === "abort" && S.abortLine) {
       const c = S.abortCell >= 0 ? S.abortCell : null;
       if (c != null) { const path = []; for (let k = c, g2 = 0; k !== -1 && g2 < 1e5; k = S.WB.P[k], g2++) path.push(k); const a = tube(path, 0xff5a4f, pv ? 0.45 : 9, pv ? 0.5 : 4); if (a) group.add(a); }
@@ -303,6 +312,6 @@ export async function create3D(el, S) {
     resize,
     update(S2) { rebuild(); if (texMode === "wb") drawTex(); if (mode === "pov") povAt(S.goFrac || 0); },
     setWalker(cell, t) { if (mode === "pov" && !playing) povAt(S.goFrac || 0); },
-    pov, overview, renderer,
+    pov, overview, renderer, scene,
   };
 }

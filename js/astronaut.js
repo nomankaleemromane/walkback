@@ -7,7 +7,7 @@ const suit = new THREE.MeshStandardMaterial({ color: 0xf1eee8, roughness: 0.85, 
 const joint = new THREE.MeshStandardMaterial({ color: 0x8d8a86, roughness: 0.7 });
 const dark = new THREE.MeshStandardMaterial({ color: 0x3a3936, roughness: 0.6 });
 const visorMat = new THREE.MeshStandardMaterial({ color: 0xffc23d, metalness: 0.7, roughness: 0.18, emissive: 0x4a2a00 });
-const shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.32, depthWrite: false });
+const shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.32, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
 
 const cap = (r, len, mat) => new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 4, 10), mat);
 const put = (parent, mesh, x, y, z) => { mesh.position.set(x, y, z); parent.add(mesh); return mesh; };
@@ -51,7 +51,7 @@ export function makeAstronaut(accent = 0xff8c4a) {
 
   // soft contact shadow so the figure sits on the ground
   const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.55, 24), shadowMat);
-  shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.03; root.add(shadow);
+  shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.08; root.add(shadow);
 
   let phase = 0, work = 0;
   return {
