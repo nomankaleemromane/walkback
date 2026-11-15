@@ -271,10 +271,10 @@ export async function create3D(el, S) {
   // position and walking direction on the smoothed path at EVA time t
   const posAt = (t) => {
     const pr = S.plan.profile, { xs, zs, tx, tz } = smooth();
-    t = Math.max(0, Math.min(t, pr[pr.length - 1][0]));
+    t = Math.max(pr[0][0], Math.min(t, pr[pr.length - 1][0])); // before the first step (airlock egress) = at the start point
     let lo = 0, hi = pr.length - 1;
     while (lo < hi) { const m = (lo + hi + 1) >> 1; if (pr[m][0] <= t) lo = m; else hi = m - 1; }
-    const n1 = Math.min(pr.length - 1, lo + 1), f = pr[n1][0] > pr[lo][0] ? Math.min(1, (t - pr[lo][0]) / (pr[n1][0] - pr[lo][0])) : 0;
+    const n1 = Math.min(pr.length - 1, lo + 1), f = pr[n1][0] > pr[lo][0] ? Math.max(0, Math.min(1, (t - pr[lo][0]) / (pr[n1][0] - pr[lo][0]))) : 0;
     const hx = tx[lo] + (tx[n1] - tx[lo]) * f, hz = tz[lo] + (tz[n1] - tz[lo]) * f; // heading turns gradually along each segment
     return { lo, k: pr[lo][2], px: xs[lo] + (xs[n1] - xs[lo]) * f, pz: zs[lo] + (zs[n1] - zs[lo]) * f, heading: Math.hypot(hx, hz) > 1e-3 ? Math.atan2(hx, hz) : null };
   };
