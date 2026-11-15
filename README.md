@@ -1,5 +1,3 @@
-<p><img src="img/logo-256.png" alt="Walkback logo" width="120"></p>
-
 # Walkback
 
 **The Mars EVA planner that always knows the way home.** NASA Space Apps 2026, challenge "Interplanetary Survival Guide: Martian Map".

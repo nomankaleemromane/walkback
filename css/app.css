@@ -30,7 +30,7 @@ b, .num { font-variant-numeric: tabular-nums; }
 /* ---------------- header */
 #top { height: var(--top); display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 0 14px; border-bottom: 1px solid var(--line); background: var(--panel); position: relative; z-index: 1000; }
 .brand { display: flex; align-items: center; gap: 10px; color: var(--acc); min-width: 0; }
-.brand svg, .brand img { width: 40px; height: 40px; flex: none; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
+.brand svg { width: 30px; height: 30px; flex: none; }
 .brand b { font-size: 19px; color: var(--fg); display: block; line-height: 1.1; letter-spacing: .01em; }
 .brand span { font-size: 12px; color: var(--mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 .brand div { min-width: 0; }
@@ -245,7 +245,7 @@ body[data-mode=go] #side, body[data-mode=abort] #side { display: none; }
 }
 @media (max-width: 640px) {
   #top { column-gap: 8px; }
-  .brand { gap: 7px; } .brand svg, .brand img { width: 34px; height: 34px; } .brand b { font-size: 17px; }
+  .brand { gap: 7px; } .brand svg { width: 26px; height: 26px; } .brand b { font-size: 17px; }
   .tools { gap: 5px; } .tools select { width: 112px; padding: 4px 6px; } .tools #demo { display: none; } .tools button { padding: 6px 10px; }
   .pill { font-size: 0; padding: 6px; } .pill::before { margin: 0; }
   .stats { grid-template-columns: repeat(2, 1fr); }
@@ -263,7 +263,6 @@ body[data-mode=go] #side, body[data-mode=abort] #side { display: none; }
 #welcome[hidden] { display: none; }
 .w-card { position: relative; width: min(680px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; background: var(--panel); border: 1px solid var(--line2); border-radius: 18px; padding: 26px 28px 22px; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
 .w-close { position: absolute; top: 12px; right: 12px; min-height: 34px; width: 34px; padding: 0; border-radius: 50%; background: transparent; }
-.w-logo { display: block; width: 96px; height: 96px; object-fit: contain; margin: -6px 0 8px -6px; filter: drop-shadow(0 6px 14px rgba(0,0,0,.6)); }
 .w-kicker { margin: 0 0 6px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--acc); font-weight: 700; }
 .w-card h1 { margin: 0; font-size: 34px; line-height: 1.1; }
 .w-tag { margin: 4px 0 14px; color: var(--mut); font-size: 15px; }
