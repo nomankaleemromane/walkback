@@ -47,10 +47,11 @@ export function dijkstra(T, opts) {
   const { w, h, n, Z, H, pass, cx, cy } = T;
   const { sources, reverse = false, allow = null, hazW = 1.5, targets = null } = opts;
   const [x0, y0, x1, y1] = opts.box || [0, 0, w - 1, h - 1];
-  const C = new Float64Array(n).fill(Infinity), E = new Float64Array(n), Tm = new Float64Array(n), P = new Int32Array(n).fill(-1);
+  // unreached cells keep Infinity in every field (not 0), so "no route" never reads as "0 min from shelter"
+  const C = new Float64Array(n).fill(Infinity), E = new Float64Array(n).fill(Infinity), Tm = new Float64Array(n).fill(Infinity), P = new Int32Array(n).fill(-1);
   const heap = new Heap();
   const dist = NB.map(([dx, dy]) => Math.hypot(dx * cx, dy * cy));
-  for (const s of sources) { if (s >= 0) { C[s] = 0; heap.push(0, s); } }
+  for (const s of sources) { if (s >= 0) { C[s] = 0; E[s] = 0; Tm[s] = 0; heap.push(0, s); } }
   let left = targets ? new Set(targets) : null;
   while (heap.n) {
     const u = heap.pop(), cu = heap.top;

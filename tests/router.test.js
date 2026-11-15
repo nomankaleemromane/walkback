@@ -55,3 +55,12 @@ test("pathStats measures length and climb", () => {
   assert.ok(Math.abs(s.lengthM - 30) < 1e-9);
   assert.equal(s.gainM, 3);
 });
+
+test("unreachable cells have no route (Infinity), not zero time", () => {
+  const T = flat();
+  for (let y = 0; y < T.h; y++) T.pass[y * T.w + 15] = 0; // full wall: right side unreachable
+  const R = dijkstra(T, { sources: [0], reverse: true, hazW: 0 });
+  assert.equal(R.T[20], Infinity);
+  assert.equal(R.E[20], Infinity);
+  assert.equal(R.T[0], 0);
+});

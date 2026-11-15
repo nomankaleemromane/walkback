@@ -207,7 +207,7 @@ function setupMap() {
   const ov = (url) => L.imageOverlay(url, S.M.bounds, { opacity: $("ovOp").value / 100, interactive: false, className: "px" });
   const maxS = S.policy.params.max_slope_deg.value;
   S.ovDefs = {
-    wb: ["Walk-back time to shelter", "derived", "Sets which stops are allowed; routes stay inside the limit", () => ov(M2.rasterURL(S.T, M2.walkbackColor(S.T, S.WB, S.ec.paceKmh / 3.6, wbLimitS()))), "wb"],
+    wb: ["Walk-back time to shelter", "derived", "Sets which stops are allowed; routes stay inside the limit", () => M2.walkbackLayer(S.T, S.WB, S.ec.paceKmh / 3.6, wbLimitS(), S.M.bounds, { opacity: $("ovOp").value / 100 }), "wb"],
     hazard: ["Terrain hazard (geology + roughness + TI + slope)", "derived", "Router avoids/penalises; blocks above 85", () => L.layerGroup([ov(M2.rasterURL(S.T, M2.hazardColor(S.T))), ov(M2.rasterURL(S.T, M2.confidenceColor(S.T)))]), "hazard"],
     slope: ["Max slope from 20 m CTX DTM", "topographic", `Never-exceed ${maxS}° blocks cells; caution above ${S.policy.params.caution_slope_deg.value}°`, () => ov(M2.rasterURL(S.T, M2.slopeColor(S.T, maxS))), "slope"],
     geo: ["Photogeologic map (Mars 2020 team)", "geologic", "Boulder/sand units raise hazard", () => ov(M2.rasterURL(S.T, M2.geoColor(S.T, S.traffic))), "geo"],
@@ -256,8 +256,15 @@ function toggleOverlay(k, on) {
 }
 const wbKey = () => `${wbLimitS()}|${S.ec.paceKmh}|${S.roverOn ? S.rover : -1}`;
 function refreshOverlay(k) {
-  if (!S.overlays[k]) return;
-  if (k === "wb" && wbKey() === S.wbKey) return; // the walk-back raster only changes with the limit, pace or shelters
+  const lay = S.overlays[k];
+  if (!lay) return;
+  if (k === "wb") {
+    if (wbKey() === S.wbKey) return; // nothing changed
+    // same shelters and pace, new limit (e.g. a storm level change): animate the safe zone to it
+    if (lay.animateTo && lay.WB === S.WB && lay.v === S.ec.paceKmh / 3.6) {
+      S.wbKey = wbKey(); lay.animateTo(wbLimitS()); renderLegend(); return;
+    }
+  }
   toggleOverlay(k, true);
 }
 function renderLegend() {

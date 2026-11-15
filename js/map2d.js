@@ -133,6 +133,50 @@ export function walkbackColor(T, WB, v, limitS) {
   };
 }
 
+// Walk-back overlay drawn into a <canvas> (not a data-URL image), so it can be redrawn every frame:
+// when the shelter-time limit changes, the safe zone grows or shrinks smoothly to its new edge.
+const CanvasOverlay = L.ImageOverlay.extend({
+  _initImage() {
+    const c = (this._image = L.DomUtil.create("canvas", "leaflet-image-layer" + (this._zoomAnimated ? " leaflet-zoom-animated" : "")));
+    c.style.pointerEvents = "none";
+    c.onselectstart = L.Util.falseFn; c.onmousemove = L.Util.falseFn;
+  },
+});
+const reduceMotion = () => window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+export function walkbackLayer(T, WB, v, limitS, bounds, opts = {}) {
+  const layer = new CanvasOverlay("", bounds, { interactive: false, ...opts });
+  let cur = limitS, anim = 0;
+  const draw = (lim) => {
+    const c = layer._image;
+    if (!c) return;
+    if (c.width !== T.w) { c.width = T.w; c.height = T.h; }
+    const g = c.getContext("2d"), im = g.createImageData(T.w, T.h), d = im.data, px = [0, 0, 0, 0];
+    const col = walkbackColor(T, WB, v, lim);
+    for (let k = 0; k < T.n; k++) {
+      if (!col(k, px)) continue;
+      const o = k * 4; d[o] = px[0]; d[o + 1] = px[1]; d[o + 2] = px[2]; d[o + 3] = px[3];
+    }
+    g.putImageData(im, 0, 0);
+  };
+  layer.on("add", () => draw(cur));
+  Object.assign(layer, { WB, v, target: limitS });
+  // ease the limit edge from where it is now to the new limit (~1.5 s)
+  layer.animateTo = (lim, ms = 1500) => {
+    cancelAnimationFrame(anim);
+    layer.target = lim;
+    const from = cur, t0 = performance.now();
+    if (!layer._image || reduceMotion() || !isFinite(from) || !isFinite(lim) || from === lim) { cur = lim; draw(cur); return; }
+    const step = (now) => {
+      const f = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - f, 3); // ease-out
+      cur = from + (lim - from) * e;
+      draw(cur);
+      if (f < 1) anim = requestAnimationFrame(step);
+    };
+    anim = requestAnimationFrame(step);
+  };
+  return layer;
+}
+
 export function legendHTML(kind, ctx) {
   const rampCss = (st) => `linear-gradient(90deg,${st.map((c) => `rgb(${c})`).join(",")})`;
   switch (kind) {
