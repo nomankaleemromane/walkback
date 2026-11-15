@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1D1530"/><stop offset="1" stop-color="#0B0912"/></linearGradient>
+  <linearGradient id="bgw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22160F"/><stop offset="1" stop-color="#110B08"/></linearGradient>
+  <clipPath id="sq"><rect width="512" height="512" rx="112"/></clipPath>
+  <radialGradient id="abody" cx="0.38" cy="0.34" r="0.78">
+    <stop offset="0" stop-color="#F29A5E"/><stop offset="0.45" stop-color="#D9653A"/><stop offset="0.8" stop-color="#A8401F"/><stop offset="1" stop-color="#6E2312"/></radialGradient>
+  <radialGradient id="ashade" cx="0.22" cy="0.22" r="1.05">
+    <stop offset="0.55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#140604" stop-opacity="0.78"/></radialGradient>
+  <radialGradient id="aglow" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0.93" stop-color="#FFC08F" stop-opacity="0"/><stop offset="0.965" stop-color="#FFC08F" stop-opacity="0.28"/><stop offset="1" stop-color="#FFC08F" stop-opacity="0"/></radialGradient>
+  <filter id="asoft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="7"/></filter>
+  <filter id="asoft2" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"/></filter></defs><g clip-path="url(#sq)">
+    <rect width="512" height="512" fill="url(#bg)"/><circle cx="251" cy="287" r="1.2" fill="#FFF3E0" opacity="0.41"/><circle cx="125" cy="227" r="2.0" fill="#FFF3E0" opacity="0.60"/><circle cx="40" cy="450" r="2.2" fill="#FFF3E0" opacity="0.64"/><circle cx="210" cy="146" r="2.6" fill="#FFF3E0" opacity="0.74"/><circle cx="337" cy="39" r="2.0" fill="#FFF3E0" opacity="0.60"/><circle cx="120" cy="344" r="1.3" fill="#FFF3E0" opacity="0.43"/><circle cx="287" cy="249" r="1.4" fill="#FFF3E0" opacity="0.44"/><circle cx="26" cy="481" r="2.9" fill="#FFF3E0" opacity="0.83"/><circle cx="62" cy="227" r="2.9" fill="#FFF3E0" opacity="0.83"/><circle cx="97" cy="215" r="2.1" fill="#FFF3E0" opacity="0.63"/><circle cx="344" cy="144" r="1.3" fill="#FFF3E0" opacity="0.44"/><circle cx="505" cy="228" r="1.5" fill="#FFF3E0" opacity="0.47"/><circle cx="280" cy="169" r="1.3" fill="#FFF3E0" opacity="0.43"/><circle cx="396" cy="180" r="1.7" fill="#FFF3E0" opacity="0.53"/><circle cx="41" cy="474" r="1.5" fill="#FFF3E0" opacity="0.47"/><circle cx="453" cy="241" r="1.5" fill="#FFF3E0" opacity="0.47"/><circle cx="309" cy="206" r="2.5" fill="#FFF3E0" opacity="0.73"/><circle cx="334" cy="70" r="1.4" fill="#FFF3E0" opacity="0.46"/><circle cx="231" cy="46" r="1.1" fill="#FFF3E0" opacity="0.37"/><circle cx="211" cy="349" r="2.3" fill="#FFF3E0" opacity="0.67"/><circle cx="489" cy="166" r="1.9" fill="#FFF3E0" opacity="0.57"/><circle cx="254" cy="225" r="2.7" fill="#FFF3E0" opacity="0.77"/><circle cx="231" cy="225" r="1.5" fill="#FFF3E0" opacity="0.48"/><circle cx="121" cy="380" r="1.3" fill="#FFF3E0" opacity="0.42"/><circle cx="138" cy="393" r="2.7" fill="#FFF3E0" opacity="0.78"/><circle cx="496" cy="475" r="2.7" fill="#FFF3E0" opacity="0.78"/>
+    
+  <clipPath id="aclip"><circle cx="256" cy="262" r="196"/></clipPath>
+  <circle cx="256" cy="262" r="205.8" fill="url(#aglow)"/>
+  <circle cx="256" cy="262" r="196" fill="url(#abody)"/>
+  <g clip-path="url(#aclip)">
+    <g transform="translate(106 112) scale(1.3066666666666666)" filter="url(#asoft)" opacity="0.55" fill="#5A1C0E">
+      <path d="M150 120 C 175 110, 190 135, 182 165 C 175 195, 160 215, 148 200 C 138 185, 130 140, 150 120 z"/>
+      <path d="M40 150 C 80 140, 120 150, 140 160 C 120 172, 80 172, 40 168 z"/>
+      <path d="M200 90 C 230 85, 255 100, 262 120 C 240 118, 215 112, 200 90 z"/>
+      <path d="M60 220 C 100 210, 150 225, 210 222 C 190 245, 110 250, 60 235 z" opacity="0.6"/>
+    </g>
+    <g transform="translate(106 112) scale(1.3066666666666666)">
+      <ellipse cx="150" cy="10" rx="68" ry="22" fill="#FFF7EE" filter="url(#asoft2)" opacity="0.92"/>
+      <circle cx="96" cy="104" r="9" fill="none" stroke="#7A2A14" stroke-width="3" opacity="0.5"/>
+      <circle cx="214" cy="196" r="6" fill="none" stroke="#7A2A14" stroke-width="2.5" opacity="0.45"/>
+      <circle cx="120" cy="236" r="5" fill="none" stroke="#7A2A14" stroke-width="2" opacity="0.4"/>
+    </g>
+    <circle cx="256" cy="262" r="196" fill="url(#ashade)"/>
+  </g>
+  <circle cx="256" cy="262" r="196" fill="none" stroke="#FFC79A" stroke-opacity="0.35" stroke-width="2.5"/>
+    <path d="M190 318 C 150 290, 160 210, 250 196 C 340 182, 380 250, 330 300 C 300 330, 266 338, 240 334" fill="none" stroke="#FFD166" stroke-width="17" stroke-linecap="round" stroke-dasharray="1 30"/>
+    <path d="M256 314 L232 333 L258 350" fill="none" stroke="#FFD166" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
+    <g transform="translate(330 252) scale(1.15)"><rect x="-2.5" y="-46" width="5" height="46" rx="2" fill="#FFFFFF"/><path d="M2 -46 L30 -38 L2 -30 z" fill="#FFD166"/></g><g transform="translate(184 346) scale(1.25)"><path d="M-26 0 a26 26 0 0 1 52 0 z" fill="#FFFFFF"/><path d="M-26 0 a26 26 0 0 1 52 0" fill="none" stroke="#1A0E08" stroke-width="4"/><rect x="-6" y="-12" width="12" height="12" rx="2" fill="#3A2416"/></g>
+  </g></svg>

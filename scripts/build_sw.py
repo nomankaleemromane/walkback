@@ -2,7 +2,7 @@
 import os, json, re
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
-files = ["./", "index.html", "css/app.css", "icon.svg", "manifest.webmanifest", "config/policy.json", "data/donki_snapshot.json",
+files = ["./", "index.html", "css/app.css", "icon.svg", "manifest.webmanifest", "img/logo-32.png", "img/logo-64.png", "img/logo-96.png", "img/logo-256.png", "img/app-icon-192.png", "img/app-icon-512.png", "config/policy.json", "data/donki_snapshot.json",
          "vendor/leaflet/leaflet.js", "vendor/leaflet/leaflet.css", "vendor/three/three.module.min.js", "vendor/three/OrbitControls.js"]
 files += ["js/" + f for f in sorted(os.listdir("js")) if f.endswith(".js")]
 for root, _, fs in os.walk("data/sites"):
