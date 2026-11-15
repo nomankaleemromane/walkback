@@ -1,6 +1,6 @@
 # Walkback
 
-**The Mars EVA planner that always knows the way home.** NASA Space Apps 2026, challenge "Marswalk map".
+**The Mars EVA planner that always knows the way home.** NASA Space Apps 2026, challenge "Interplanetary Survival Guide: Martian Map".
 
 Walkback is a layered, integrated Marswalk map for Jezero crater. It plans a walking EVA from a habitat to real Perseverance sampling sites so that, **at every point of the route, the crew can walk back to a safe haven** before consumables, radiation shelter time or daylight run out. It shows which limit binds, re-plans when NASA forecasts a CME at Mars, and gives a one-tap abort route.
 

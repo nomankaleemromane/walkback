@@ -63,6 +63,7 @@ async function boot() {
   if ("serviceWorker" in navigator && location.protocol.startsWith("http") && !/[?&]nosw/.test(location.search)) navigator.serviceWorker.register("sw.js").catch(() => {});
   setInterval(() => { renderNow(); }, 60000);
   setInterval(() => loadSpaceWeather(true), 30 * 60000);
+  setupWelcome();
   document.body.dataset.ready = "1";
 }
 
@@ -356,6 +357,35 @@ function setupUI() {
   window.addEventListener("resize", () => { clearTimeout(S.rz); S.rz = setTimeout(drawCharts, 120); });
   window.addEventListener("online", () => loadSpaceWeather());
   window.addEventListener("offline", () => setNet("Offline · cached data", "off"));
+}
+// ------------------------------------------------------------------ welcome (first visit; "?" reopens)
+function setupWelcome() {
+  const w = $("welcome"), close = () => { w.hidden = true; try { localStorage.setItem("walkback-welcomed", "1"); } catch {} };
+  const open = () => { w.hidden = false; setTimeout(() => w.querySelector(".w-act").focus(), 30); };
+  $("help").onclick = open;
+  $("wClose").onclick = close; $("wExplore").onclick = close;
+  w.onclick = (e) => { if (e.target === w) close(); };
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !w.hidden) close();
+    if ((e.key === "h" || e.key === "H") && !e.target.matches("input, select, textarea")) open();
+  });
+  w.querySelectorAll("[data-w]").forEach((b) => (b.onclick = async () => {
+    close();
+    const k = b.dataset.w;
+    if (k === "demo") $("demo").click();
+    if (k === "storm") {
+      setMode("plan"); if (S.view === "3d") await setView("2d"); setTab("plan");
+      setSw("quiet"); fitRoute();
+      setTimeout(() => setSw("warning"), 900); // let the eye find the safe zone, then shrink it
+    }
+    if (k === "crew") {
+      setMode("plan"); await setView("3d");
+      setTimeout(() => { $("v3cam").value = "follow"; $("v3cam").dispatchEvent(new Event("change")); $("v3speed").value = "10"; $("v3speed").dispatchEvent(new Event("change")); if ($("v3play").textContent.includes("Walk")) $("v3play").click(); }, 400);
+    }
+  }));
+  let seen = false; try { seen = localStorage.getItem("walkback-welcomed") === "1"; } catch {}
+  const q = new URLSearchParams(location.search);
+  if ((!seen || q.has("welcome")) && !q.has("nowelcome") && !q.has("nosw")) open();
 }
 export function setTab(t) {
   S.tab = t;
@@ -700,7 +730,7 @@ function renderAssumptions() {
     `<h3>Effort model range</h3><p class="small">${esc(S.policy.effort_cases._about)}</p>` + ["low", "central", "high"].map((c) => `<div class="assume-row"><b>${c}</b>: <small>${esc(S.policy.effort_cases[c].source)}</small></div>`).join("") +
     (S.traffic ? `<h3>Trafficability</h3><p class="small">${esc(S.traffic.method)} Geology covers ${S.traffic.geology_coverage_pct}% of the grid; elsewhere hazard uses the DEM and thermal inertia only (hatched on the hazard map). The CTX DTM resolves features of roughly 60–100 m, so single boulders are not visible to it.</p>` : `<h3>Trafficability</h3><p class="small">This site pack has terrain only (slope + roughness). Geology and thermal-inertia layers are not built yet, so hazard confidence is low everywhere.</p>`) +
     `<h3>Not modelled</h3><p class="small">Suit thermal limits, lighting/shadows from terrain, dust storms beyond climatology, communications line of sight, and medical events other than a slowed (buddy-assisted) walk back. Rover/human path differences. These are listed in docs/IMPLEMENTATION.md.</p>`;
-  $("credits").innerHTML = `Data: NASA Mars Trek (WMTS); ${esc(S.site.dem_source)}; ${esc(S.site.texture_source)}; ${S.traffic ? esc(S.traffic.sources.geology) + "; " + esc(S.traffic.sources.ti) + "; " : ""}${S.meda.source ? esc(S.meda.source) + "; " : ""}NASA CCMC DONKI (WSA-Enlil); Perseverance waypoints/traverse and raw images © NASA/JPL-Caltech (Mastcam-Z: NASA/JPL-Caltech/ASU). ` +
+  $("credits").innerHTML = `Data: NASA Mars Trek (WMTS), including the MOLA + HRSC shaded relief (HRSC on ESA's Mars Express: ESA/DLR/FU Berlin); ${esc(S.site.dem_source)}; ${esc(S.site.texture_source)}; ${S.traffic ? esc(S.traffic.sources.geology) + "; " + esc(S.traffic.sources.ti) + "; " : ""}${S.meda.source ? esc(S.meda.source) + "; " : ""}NASA CCMC DONKI (WSA-Enlil); Perseverance waypoints/traverse and raw images © NASA/JPL-Caltech (Mastcam-Z: NASA/JPL-Caltech/ASU). ` +
     `Walkback is a research prototype for NASA Space Apps 2026, not flight software. Built with AI assistance (see README).`;
 }
 

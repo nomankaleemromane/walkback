@@ -24,6 +24,9 @@
   "warning_past_hours": {"value": 12, "unit": "h", "basis": "assumed", "source": "Keep Warning this long after a predicted arrival."},
   "buddy_assist_pace_factor": {"value": 0.5, "unit": "x", "basis": "assumed", "source": "Pace when one crew member helps an impaired partner (buddy rule contingency). Used for the 'assisted walk-back' ETA."},
   "hazard_route_weight": {"value": 1.5, "unit": "x", "basis": "assumed", "source": "Route cost multiplier = 1 + weight x terrain hazard (0..1)."},
+  "hazard_caution": {"value": 0.6, "unit": "0-1", "basis": "assumed", "source": "Terrain hazard at or above this counts as rough or soft ground (boulders, talus, megaripples, loose sand)."},
+  "hazard_caution_share": {"value": 0.05, "unit": "fraction", "basis": "assumed", "source": "CAUTION if more than this share of the walked distance crosses rough or soft ground. A few short crossings are normal on Mars; long stretches slow the crew and raise fall risk."},
+  "hazard_high": {"value": 0.7, "unit": "0-1", "basis": "assumed", "source": "CAUTION if any point of the route reaches this hazard level (clearly difficult ground), however short."},
   "hazard_block": {"value": 0.85, "unit": "0-1", "basis": "assumed", "source": "Cells with terrain hazard at or above this are treated as impassable."},
   "soft_ti_max": {"value": 180, "unit": "TIU", "basis": "assumed", "source": "Thermal inertia below this suggests fine, loose material (soft-ground risk). Jezero TI p5/p50/p95 = 170/234/315 on our grid (Edwards & Buz 2021)."},
   "gcr_msv_per_day": {"value": 0.64, "unit": "mSv/day", "basis": "sourced", "source": "Curiosity RAD surface dose equivalent rate, ~0.64 mSv/day (Hassler et al. 2014, Science 343)."}

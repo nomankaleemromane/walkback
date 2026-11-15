@@ -46,6 +46,14 @@ export function buildTerrain(site, raw, traffic, policy) {
     cx: site.cell_x, cy: site.cell_y,
     Z, slope, rough, H, pass, conf, kind, ti: raw.ti || null,
     geoBed: raw.geo_bed || null, geoSurf: raw.geo_surf || null,
+    // plain-language name of the ground type at a cell (for explaining hazards)
+    groundName: (k) => {
+      const plain = { "Aeolian bedforms, large": "large sand ripples (megaripples)", "Aeolian bedforms, small": "small sand ripples", "Talus": "boulder slopes (talus)", "Delta blocky": "boulder-shedding delta rock", "Crater rim blocky": "blocky crater-rim rock", "Crater rim breccia": "broken crater-rim rock" };
+      const s = raw.geo_surf && traffic ? (traffic.surf_units.find((u) => u.id === raw.geo_surf[k]) || {}).name : null;
+      const b = raw.geo_bed && traffic ? (traffic.bed_units.find((u) => u.id === raw.geo_bed[k]) || {}).name : null;
+      const n = s && plain[s] ? s : b && plain[b] ? b : s || b;
+      return n ? plain[n] || n.toLowerCase() : raw.ti && raw.ti[k] && raw.ti[k] < (policy.params.soft_ti_max ? policy.params.soft_ti_max.value : 180) ? "loose, fine-grained ground" : "rough ground";
+    },
     comp: { geo: cGeo, rough: cRough, soft: cSoft, slope: cSlope },
   };
 }

@@ -24,6 +24,7 @@
   <div class="tools">
     <select id="siteSel" aria-label="Site"></select>
     <button id="view3d" class="ghost" title="Toggle 2D / 3D view (V)">3D</button>
+    <button id="help" class="ghost" title="What is Walkback? (H)" aria-label="About Walkback">?</button>
     <button id="demo" class="ghost" title="Run the demo scenario">▶ Demo</button>
     <span id="net" class="pill" title="Data status" role="status">…</span>
   </div>
@@ -188,6 +189,26 @@
   </aside>
 </main>
 <div id="printCard" hidden></div>
+<div id="welcome" role="dialog" aria-modal="true" aria-labelledby="wTitle" hidden>
+  <div class="w-card">
+    <button class="w-close" id="wClose" aria-label="Close">✕</button>
+    <p class="w-kicker">NASA Space Apps 2026 · Interplanetary Survival Guide: Martian Map</p>
+    <h1 id="wTitle">Walkback</h1>
+    <p class="w-tag">The Mars EVA planner that always knows the way home</p>
+    <p class="w-lead">On Mars, the first question on any spacewalk is <b>can we get home?</b> Walkback plans a Marswalk to real Perseverance sample sites in Jezero crater and checks, at every step, that the crew can still walk back to shelter before air, daylight or a solar-storm limit runs out. It layers <b>10 datasets from 8 NASA missions</b>.</p>
+    <div class="w-actions">
+      <button class="w-act" data-w="demo"><span>▶</span><b>Watch the 1-minute demo</b><small>Storm forecast, mid-walk abort, rover rescue</small></button>
+      <button class="w-act" data-w="storm"><span>⚡</span><b>Simulate a solar storm</b><small>See the safe zone shrink and the plan change</small></button>
+      <button class="w-act" data-w="crew"><span>🧑‍🚀</span><b>Walk with the crew in 3D</b><small>Two astronauts on real Mars terrain</small></button>
+    </div>
+    <ol class="w-how">
+      <li><b>Plan</b>: the route, stops and GO / CAUTION / NO-GO verdict, with every safety check and its source.</li>
+      <li><b>Go</b>: the astronaut's tablet view during the walk: time to shelter and the margin left.</li>
+      <li><b>Abort</b>: one tap for the safest way home.</li>
+    </ol>
+    <button class="w-explore" id="wExplore">Explore on my own</button>
+  </div>
+</div>
 <script src="vendor/leaflet/leaflet.js"></script>
 <script type="module" src="js/app.js"></script>
 </body>

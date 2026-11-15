@@ -1,7 +1,7 @@
 # Walkback: complete project details
 
 **Walkback — the Mars EVA planner that always knows the way home.**
-NASA Space Apps Challenge 2026 · Challenge: **Marswalk map**
+NASA Space Apps Challenge 2026 · Challenge: **Interplanetary Survival Guide: Martian Map**
 
 - Live app: https://walkback-nine.vercel.app (second site: https://walkback-nine.vercel.app/?site=gale)
 - Source code: https://github.com/nomankaleemromane/walkback (public)
@@ -60,7 +60,7 @@ Walkback is a layered, integrated Marswalk map for Jezero crater, where NASA's P
 
 | # | Dataset | Mission / source | What it changes in the plan |
 |---|---|---|---|
-| 1 | NASA Mars Trek map tiles: CTX Jezero 6 m, Viking colour, MOLA elevation, MOLA+HRSC relief, THEMIS IR day and night | NASA Mars Trek (JPL) | Base maps and context layers |
+| 1 | NASA Mars Trek map tiles: CTX Jezero 6 m, Viking colour, MOLA elevation, MOLA+HRSC relief, THEMIS IR day and night | NASA Mars Trek (JPL); the HRSC part is from **ESA's Mars Express** (ESA/DLR/FU Berlin), a 2026 Space Agency Partner | Base maps and context layers |
 | 2 | Jezero 3D terrain model (20 m) and orthophoto (6 m), Fergason et al. 2020, USGS (doi:10.5066/P906QQT8, 10.5066/P9GV1ND3) | NASA Mars Reconnaissance Orbiter, CTX camera; the same maps used to land Perseverance | Slopes, walking effort, pace, walk-back times, 3D terrain and texture, offline base map |
 | 3 | Mars 2020 Science Team photogeologic map, Stack et al. 2020 (Space Sci. Rev. 216:127) | NASA Mars 2020 team, mapped on HiRISE images | Boulder-shedding mesas, talus, megaripples and rough units raise terrain hazard; the router detours |
 | 4 | THEMIS thermal inertia of Jezero, Edwards & Buz 2021 (Zenodo 10.5281/zenodo.4931348) | NASA Mars Odyssey, THEMIS | Low thermal inertia flags loose, soft ground |
@@ -70,6 +70,8 @@ Walkback is a layered, integrated Marswalk map for Jezero crater, where NASA's P
 | 8 | Perseverance raw images (Mastcam-Z, Navcam, Hazcam) | NASA/JPL Mars 2020 | Point-of-view photos at each destination |
 | 9 | Curiosity RAD surface radiation (~0.64 mSv/day) | NASA Mars Science Laboratory | Background radiation dose along the route |
 | 10 | Curiosity waypoints, plus USGS Gale 1 m terrain model and HiRISE colour mosaic | NASA Mars Science Laboratory; NASA MRO HiRISE | Second site (Gale crater) |
+
+**Space Agency Partner data:** ESA (Mars Express HRSC, inside the MOLA+HRSC relief layer). **Partner inspiration:** JAXA and Toyota's pressurized Lunar Cruiser concept for the rover safe haven (a reference, not data).
 
 Missions: Mars Reconnaissance Orbiter (CTX and HiRISE), Mars Odyssey (THEMIS), Mars Global Surveyor (MOLA), Viking, Perseverance, Curiosity, plus NASA's CCMC space-weather models. Every dataset is cited in the app (Sources tab) and in the README, with licences.
 
@@ -337,7 +339,7 @@ About 2,300 lines of app JavaScript in 15 modules, 9 data-builder and analysis s
 | `config/policy.json` | All limits with sources |
 | `scripts/README.md` | How to rebuild every dataset |
 
-## 13. Challenge requirements met (Marswalk map)
+## 13. Challenge requirements met (Interplanetary Survival Guide: Martian Map)
 
 - **Explicit science objectives and site:** Jezero, three objectives, 13 real stops.
 - **At least three data kinds, layered and used in decisions:** seven kinds (optical, topographic, geologic, thermal, atmospheric, radiation/space weather, rover ground truth).

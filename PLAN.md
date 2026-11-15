@@ -1,6 +1,6 @@
 # Walkback: build plan
 
-Walkback is a Mars EVA planner that always knows the way home. Built for the NASA Space Apps 2026 "Marswalk map" challenge (event Nov 14-15, 2026; plan started Nov 9).
+Walkback is a Mars EVA planner that always knows the way home. Built for the NASA Space Apps 2026 "Interplanetary Survival Guide: Martian Map" challenge (event Nov 14-15, 2026; plan started Nov 9).
 
 ## What I verified before building (Nov 9, 2026)
 

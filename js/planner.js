@@ -118,7 +118,18 @@ export function evaluate(T, WB, legs, targets, order, K, policy) {
   }
   steps.push({ kind: "ingress", t0: t, t1: t + K.ingressS, label: "Ingress (airlock)" });
   const totalS = t + K.ingressS;
-  return { order, steps, path, profile, totalS, walkS, joules, lengthM: lenM, gainM: gain, maxSlope: maxS, maxHazard: maxH, maxWBs: maxWB, minCapMarginS: minCapMargin, avgW: avgPower(joules, walkS), K };
+  // share of walked distance on rough/soft ground (each path step counted by its length)
+  const hc = policy.params.hazard_caution ? policy.params.hazard_caution.value : 0.6;
+  let roughM = 0, allM = 0; const kinds = {};
+  for (let q = 1; q < path.length; q++) {
+    const a = path[q - 1], b = path[q];
+    const d = Math.hypot(((b % T.w) - (a % T.w)) * T.cx, (((b / T.w) | 0) - ((a / T.w) | 0)) * T.cy);
+    allM += d;
+    if (Math.max(T.H[a], T.H[b]) >= hc) { roughM += d; if (T.groundName) { const n = T.groundName(T.H[b] >= T.H[a] ? b : a); kinds[n] = (kinds[n] || 0) + d; } }
+  }
+  const roughShare = allM > 0 ? roughM / allM : 0;
+  const roughKind = Object.entries(kinds).sort((x, y) => y[1] - x[1]).map((e) => e[0])[0] || null;
+  return { order, steps, path, profile, totalS, roughShare, roughM, roughKind, walkS, joules, lengthM: lenM, gainM: gain, maxSlope: maxS, maxHazard: maxH, maxWBs: maxWB, minCapMarginS: minCapMargin, avgW: avgPower(joules, walkS), K };
 }
 
 // ---- verdict with the binding constraint
@@ -138,7 +149,11 @@ export function verdict(plan, K, ctx) {
   else add("ok", `Radiation: quiet; farthest point ${m(plan.maxWBs)} from shelter (no extra limit)`, null, "radiation");
   if (isFinite(K.dayEndS)) add(dayM >= 15 * 60 ? "ok" : dayM >= 0 ? "caution" : "fail", `Daylight: back ${m(dayM + P.sunset_margin_min.value * 60)} before sunset (needs ${P.sunset_margin_min.value} min)`, dayM, "daylight");
   add(plan.maxSlope <= P.caution_slope_deg.value ? "ok" : plan.maxSlope <= P.max_slope_deg.value ? "caution" : "fail", `Steepest ground ${plan.maxSlope.toFixed(1)}° (caution ${P.caution_slope_deg.value}°, limit ${P.max_slope_deg.value}°)`, null, "slope");
-  add(plan.maxHazard < 0.6 ? "ok" : "caution", `Peak terrain hazard ${(plan.maxHazard * 100).toFixed(0)}/100 (caution at 60)`, null, "hazard");
+  const hShare = P.hazard_caution_share ? P.hazard_caution_share.value : 0.05, hHigh = P.hazard_high ? P.hazard_high.value : 0.7;
+  const rs = plan.roughShare ?? (plan.maxHazard >= 0.6 ? 1 : 0), roughOk = rs <= hShare && plan.maxHazard < hHigh;
+  add(roughOk ? "ok" : "caution", rs > 0
+    ? `Crosses ${plan.roughKind || "rough or soft ground"} on ${(rs * 100).toFixed(0)}% of the route (${(plan.roughM / 1000).toFixed(1)} km; caution above ${Math.round(hShare * 100)}%)`
+    : `No rough or soft ground on the route (peak hazard ${(plan.maxHazard * 100).toFixed(0)}/100)`, null, "hazard");
   add(plan.avgW <= K.effortRefW ? "ok" : "caution", `Average walking effort ${plan.avgW.toFixed(0)} W (${K.ec.name} case; reference ${K.effortRefW} W)`, null, "effort");
   if (ctx.coldC != null) add(ctx.coldC >= P.cold_limit_c.value ? "ok" : "caution", `Coldest air temperature during EVA ≈ ${ctx.coldC.toFixed(0)} °C (MEDA climatology; caution below ${P.cold_limit_c.value} °C)`, null, "cold");
   if (ctx.level === "warning" && P.warning_blocks_new_eva.value) add("fail", "Space-weather WARNING: policy blocks starting a new EVA. Reduced plan shown for reference.", null, "policy");

@@ -1,4 +1,4 @@
-# Challenge compliance: "Marswalk map"
+# Challenge compliance: "Interplanetary Survival Guide: Martian Map"
 
 Each item from the challenge brief, mapped to a visible feature. ✅ = built and tested; ◐ = partial; ✗ = not built (documented).
 
