@@ -24,7 +24,7 @@ Every click ("Do") and every line to say ("Say"), in order.
 | Right panel: click the **Layers** tab. Tick **Photogeologic map**, wait 2 s, untick it. | "We layer real NASA data: the rock map…" |
 | Tick **THEMIS thermal inertia**, wait 2 s, untick it. | "…heat data that shows soft sand…" |
 | Click the **Plan** tab. Point at the blue route and numbered badges. | "…and the terrain. Walkback picks five real Perseverance sample sites and the easiest safe route between them." |
-| Point at the yellow **CAUTION** box and the first check with the **BINDING** tag. | "Every check here is a real limit: slope, suit air, daylight. Verdict: CAUTION, because this walk uses almost all of the 6-hour spacewalk." |
+| Point at the yellow **CAUTION** box and the first check with the **BINDING** tag. | "Down here, it checks everything that could stop them: how steep the ground is, how much air is left in the suit, and whether they're back before dark. And it says caution, because this walk takes up almost the whole six hours they have." |
 
 ## Part 3 · 0:50–1:25 · The storm (key moment)
 
