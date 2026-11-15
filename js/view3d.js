@@ -6,6 +6,7 @@ import { marsTime, sunElevation, sunAzimuth, fmtH } from "./marstime.js";
 import { rasterURL, walkbackColor, hazardColor } from "./map2d.js";
 import { allowed } from "./charts.js";
 import { makeAstronaut } from "./astronaut.js";
+import { makeRover } from "./vehicles.js";
 
 const SOL_H = 1.0275;
 
@@ -202,7 +203,18 @@ export async function create3D(el, S) {
     const dome = new THREE.Mesh(new THREE.SphereGeometry(pv ? 6 : 40, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshLambertMaterial({ color: 0xf2f2f2 }));
     dome.position.set(hx, surfaceY(hx, hz), hz); group.add(dome);
     const hl = label("Habitat", "#ffd166"); hl.position.set(hx, surfaceY(hx, hz) + (pv ? 12 : 220), hz); if (pv) hl.scale.multiplyScalar(0.012); group.add(hl);
-    if (S.roverOn && S.rover >= 0) { const [rx, rz] = cellXZ(S.rover); const rv = new THREE.Mesh((pv ? new THREE.BoxGeometry(6, 3, 3) : new THREE.BoxGeometry(60, 30, 30)), new THREE.MeshLambertMaterial({ color: 0x2fa84f })); rv.position.set(rx, surfaceY(rx, rz) + (pv ? 1.5 : 15), rz); group.add(rv); const rl = label("Rover safe haven", "#9be7a9"); rl.position.set(rx, surfaceY(rx, rz) + (pv ? 10 : 200), rz); if (pv) rl.scale.multiplyScalar(0.012); group.add(rl); }
+    if (S.roverOn && S.rover >= 0) {
+      // pressurized rover parked beside the crew's start point, rear suit ports facing them
+      const [rx, rz] = cellXZ(S.rover);
+      let dx = 0, dz = 1;
+      if (p) { const sm = smooth(), q = p.profile.findIndex((r) => r[2] === S.rover); if (q >= 0 && (sm.tx[q] || sm.tz[q])) { dx = sm.tx[q]; dz = sm.tz[q]; } }
+      const sx = dz, sz = -dx, off = pv ? -6.5 : 0;             // left of the route (the buddy walks on the right)
+      const cx = rx + sx * off, cz = rz + sz * off;
+      const rv = makeRover(); rv.scale.setScalar(pv ? 1 : 9);   // enlarged in the overview so it can be seen
+      rv.position.set(cx, surfaceY(cx, cz), cz); rv.rotation.y = Math.atan2(sx, sz);
+      group.add(rv);
+      const rl = label("Pressurized rover (safe haven)", "#9be7a9"); rl.position.set(cx, surfaceY(cx, cz) + (pv ? 7 : 200), cz); if (pv) rl.scale.multiplyScalar(0.012); group.add(rl);
+    }
     if (!pv) group.add(walker);
   }
   const walker = new THREE.Mesh(new THREE.CylinderGeometry(10, 10, 60, 10), new THREE.MeshBasicMaterial({ color: 0xff9a5c }));
@@ -292,7 +304,9 @@ export async function create3D(el, S) {
     b.station = Bt > 0 && stepAt(p, Bt).kind === "station";
     a.root.visible = camMode !== "eye"; b.root.visible = true;
     // camera: eases towards the lead's heading, so it follows calmly instead of snapping
-    camYaw = ease(camYaw, yaw, dtReal, 3);
+    // follow camera swings round to a front-side view at a science stop, so the sampling is visible
+    const sampling = camMode === "follow" && stepAt(p, t).kind === "station";
+    camYaw = ease(camYaw, yaw + (sampling ? 2.35 : 0), dtReal, 2.2);
     const fx = Math.sin(camYaw), fz = Math.cos(camYaw);
     if (camMode === "eye") {
       const eye = 1.7 * exag + 1.7; // 1.7 m eye height (scaled with the exaggeration so the horizon looks right)
@@ -357,7 +371,7 @@ export async function create3D(el, S) {
     const walkingNow = mode === "pov" && S.plan && stepAt(S.plan, (S.goFrac || 0) * S.plan.totalS).kind === "walk";
     if (playing && S.plan) {
       // walking at the chosen speed; on station / airlock the animation runs 6x faster (the EVA clock stays real)
-      S.goFrac = Math.min(1, (S.goFrac || 0) + (dt * (walkingNow ? speed : speed * 6)) / S.plan.totalS);
+      S.goFrac = Math.min(1, (S.goFrac || 0) + (dt * (walkingNow ? speed : speed * 2.5)) / S.plan.totalS);
       povAt(S.goFrac, dt);
       const r = document.getElementById("goT"); if (r) r.value = Math.round(S.goFrac * 1000);
       if (S.goFrac >= 1) { playing = false; document.getElementById("v3play").textContent = "▶ Walk route"; }

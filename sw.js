@@ -1,7 +1,7 @@
 // Walkback service worker: offline-first. Earth-Mars signal delay is minutes, so the crew
 // tool must work with no connection. App shell + site data are pre-cached; NASA Trek tiles
 // are cached as you browse (cache-first, capped); the DONKI feed is network-first.
-const VERSION = "walkback-v17";
+const VERSION = "walkback-v18";
 const SHELL = [
 "./",
 "index.html",
@@ -27,6 +27,7 @@ const SHELL = [
 "js/siteio.js",
 "js/spaceweather.js",
 "js/terrain.js",
+"js/vehicles.js",
 "js/view3d.js",
 "data/sites/index.json",
 "data/sites/gale/dem.bin",
@@ -107,7 +108,7 @@ self.addEventListener("fetch", (e) => {
   }
   if (u.origin === location.origin) {
     // network-first for the app itself (so updates show), cache fallback offline
-    e.respondWith(fetch(e.request).then((r) => { if (r.ok) caches.open(VERSION).then((c) => c.put(e.request, r.clone())); return r; }).catch(() => caches.match(e.request, { ignoreSearch: true })));
+    e.respondWith(fetch(e.request, { cache: "no-cache" }).then((r) => { if (r.ok) caches.open(VERSION).then((c) => c.put(e.request, r.clone())); return r; }).catch(() => caches.match(e.request, { ignoreSearch: true })));
   }
 });
 let trimming = false;
