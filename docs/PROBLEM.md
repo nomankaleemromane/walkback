@@ -33,7 +33,7 @@
 4. **Terrain beyond slope matters.** The xEVA con-ops warns that boulders reduce walk-back range. The Mars 2020 photogeologic map describes "boulder-shedding" delta mesas, rim units that "erode to boulders", talus of "m-scale boulders" and megaripple fields (Stack et al. 2020).
 5. **Existing tools.**
    - SEXTANT (MIT) plans suited traverses, can compute the "walkback" home from any point, and was tested at MDRS and in the BASALT analog campaigns. At MDRS, actual traverse times were significantly longer than predicted (Johnson et al., AIAA 2011-5181; Norheim, MIT thesis).
-   - Bickel & Kring (2024) compute minimum-metabolic-workload walking paths for Artemis from lunar LOLA data.
+   - Peña-Asensio et al. (2024, with Bickel & Kring) compute minimum-metabolic-workload walking paths for Artemis from lunar LOLA data.
    - **We did not find** a tool that combines terrain walk-back with Mars space-weather alerts, Mars surface weather climatology, Mars geology and thermal-inertia trafficability, and offline use on a tablet. (The brief also named PersEIDS, AEGIS and NaviGATOR; we did not verify these.)
 
 ## Success measures, with results from real runs

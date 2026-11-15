@@ -199,7 +199,7 @@ SCIENTIFIC REFERENCES
 - Fergason, R.L. et al. (2020) Mars 2020 Terrain Relative Navigation CTX DTM and orthomosaic. USGS Astrogeology.
 - NASA (2020) Exploration EVA System Concept of Operations, EVA-EXP-0042 Rev B.
 - NASA (2024) Surface EVA Architectural Drivers.
-- Johnson, A.W. et al. (2011) SEXTANT, AIAA 2011-5181; Bickel, V.T. & Kring, D.A. (2024): existing lunar/analog EVA planning tools reviewed.
+- Johnson, A.W. et al. (2011) SEXTANT, AIAA 2011-5181; Peña-Asensio, E. et al. (2024, with Bickel & Kring), Acta Astronautica 214:324: existing lunar/analog EVA planning tools reviewed.
 - NASA news on the loss of the MAVEN orbiter (contact lost December 2025, declared lost June 2026).
 
 SOFTWARE AND TOOLS (all open source)

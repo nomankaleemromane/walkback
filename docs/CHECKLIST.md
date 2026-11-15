@@ -27,7 +27,7 @@ Check these before submission (Nov 14-15, 2026).
 
 - [ ] "Shelter assembly within 30 min", "<10 mSv over 2 h", "40 / 25 / 250 mSv design SPE": not found in arXiv 2502.02469; not used.
 - [ ] EVA Walkback Test (NASA/TP-2009-214796) is **lunar only**; the brief said lunar and Mars.
-- [ ] PersEIDS, AEGIS, NaviGATOR were not verified; SEXTANT and Bickel & Kring 2024 were.
+- [ ] PersEIDS, AEGIS, NaviGATOR were not verified; SEXTANT and Peña-Asensio et al. 2024 (with Bickel & Kring) were.
 - [ ] No official CRISM mineral map layer was integrated; the photogeologic map is the geologic/compositional layer.
 
 ## Operations

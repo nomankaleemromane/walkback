@@ -26,7 +26,7 @@ Walkback is a layered, integrated Marswalk map for Jezero crater, where NASA's P
   - Radiation from solar storms is a real risk.
 - **Mars lost its solar-particle monitor.** NASA's MAVEN orbiter lost contact in December 2025 and was declared lost on 3 June 2026. Crews now depend on solar-storm forecasts made from Earth (NASA CCMC) plus surface radiation measurements (Curiosity's RAD).
 - **There is no agreed rule for time to shelter on Mars.** A 2025 study (Löwe et al., arXiv:2502.02469) states that a unified definition is missing. It finds a radiation-detector "nowcast" can give astronauts at least 30 minutes' warning.
-- **The gap.** EVA planning tools exist for the Moon and Earth analog sites (for example MIT's SEXTANT, which computes walk-back on the Moon; and Bickel & Kring 2024 for Artemis). **We did not find** a tool for Mars that combines all of the following:
+- **The gap.** EVA planning tools exist for the Moon and Earth analog sites (for example MIT's SEXTANT, which computes walk-back on the Moon; and Peña-Asensio et al. 2024 (with Bickel & Kring) for Artemis). **We did not find** a tool for Mars that combines all of the following:
   - terrain walk-back time
   - Mars space-weather alerts
   - Mars weather climatology
