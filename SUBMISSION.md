@@ -32,7 +32,7 @@ Walkback layers 10 datasets from 8 NASA missions into one decision: can we get h
 7-slide presentation (PDF, public, no login):
 
 ```
-https://github.com/nomankaleemromane/walkback/blob/main/presentation/Walkback_NASA_Space_Apps_2026.pdf
+https://walkback-nine.vercel.app/presentation/Walkback_NASA_Space_Apps_2026.pdf
 ```
 
 (PowerPoint version: https://raw.githubusercontent.com/nomankaleemromane/walkback/main/presentation/Walkback_NASA_Space_Apps_2026.pptx)
