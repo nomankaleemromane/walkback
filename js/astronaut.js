@@ -24,33 +24,37 @@ const box = (x, y, z, mat) => new THREE.Mesh(new THREE.BoxGeometry(x, y, z), mat
 const ring = (r, t, mat) => { const m = new THREE.Mesh(new THREE.TorusGeometry(r, t, 8, 20), mat); m.rotation.x = Math.PI / 2; return m; };
 const put = (parent, mesh, x = 0, y = 0, z = 0) => { mesh.position.set(x, y, z); parent.add(mesh); return mesh; };
 
-export function makeAstronaut(accent = 0xff8c4a) {
+// role: "sampler" kneels and hammers at a science stop; "assistant" stands and holds the sample bag
+export function makeAstronaut(accent = 0xff8c4a, role = "sampler") {
   const stripe = M(accent, 0.7, 0, { emissive: accent, emissiveIntensity: 0.12 });
   const root = new THREE.Group();   // on the ground, rotated to the heading
   const body = new THREE.Group();   // bobs and sways while walking
   root.add(body);
+  // upper body bends at the hips (pivot 0.92 m); its parts keep their standing coordinates via U
+  const upper = put(body, new THREE.Group(), 0, 0.92, 0);
+  const U = put(upper, new THREE.Group(), 0, -0.92, 0);
 
   // ---- torso: hard upper torso (HUT) over a soft lower torso, brief/hip assembly
-  const hut = put(body, cap(0.29, 0.3, hard, 20), 0, 1.24, 0.01); hut.scale.set(1.18, 1, 0.86);
-  put(body, cap(0.25, 0.14, fabric, 16), 0, 1.0, 0).scale.set(1.1, 1, 0.84);
-  put(body, ring(0.255, 0.03, metal), 0, 1.07, 0).scale.set(1.12, 0.86, 1);                    // waist bearing
+  const hut = put(U, cap(0.29, 0.3, hard, 20), 0, 1.24, 0.01); hut.scale.set(1.18, 1, 0.86);
+  put(U, cap(0.25, 0.14, fabric, 16), 0, 1.0, 0).scale.set(1.1, 1, 0.84);
+  put(U, ring(0.255, 0.03, metal), 0, 1.07, 0).scale.set(1.12, 0.86, 1);                    // waist bearing
   put(body, cap(0.23, 0.1, fabric2, 16), 0, 0.88, 0).scale.set(1.3, 1, 0.92);                   // brief
   // chest display and control module (DCM) with dials
-  const dcm = put(body, box(0.3, 0.17, 0.1, darkGrey), 0, 1.2, 0.27);
+  const dcm = put(U, box(0.3, 0.17, 0.1, darkGrey), 0, 1.2, 0.27);
   for (const [x, c] of [[-0.08, 0xff6a3d], [0, 0x3dd9ff], [0.08, 0xffd166]]) {
     const knob = put(dcm, cyl(0.022, 0.022, 0.03, M(c, 0.4)), x, 0.02, 0.06); knob.rotation.x = Math.PI / 2;
   }
   put(dcm, box(0.12, 0.04, 0.01, M(0x1e3a2e, 0.2, 0, { emissive: 0x2fa84f, emissiveIntensity: 0.6 })), 0, -0.05, 0.055);
   // life-support backpack (PLSS): shell, side vents, top antenna
-  const plss = put(body, box(0.56, 0.72, 0.28, hard), 0, 1.25, -0.33);
+  const plss = put(U, box(0.56, 0.72, 0.28, hard), 0, 1.25, -0.33);
   put(plss, box(0.5, 0.64, 0.02, fabric2), 0, 0, -0.15);
   for (const y of [-0.18, -0.06, 0.06]) { put(plss, box(0.035, 0.08, 0.2, darkGrey), 0.29, y, 0); put(plss, box(0.035, 0.08, 0.2, darkGrey), -0.29, y, 0); }
   put(plss, cyl(0.006, 0.006, 0.35, metal, 6), 0.2, 0.52, -0.05);
   put(plss, box(0.2, 0.06, 0.12, darkGrey), -0.12, 0.38, 0);
 
   // ---- helmet: neck bearing, bubble, gold visor, side lights and camera
-  put(body, ring(0.15, 0.03, metal), 0, 1.5, 0.01);
-  const head = put(body, new THREE.Group(), 0, 1.69, 0.03);
+  put(U, ring(0.15, 0.03, metal), 0, 1.5, 0.01);
+  const head = put(U, new THREE.Group(), 0, 1.69, 0.03);
   put(head, new THREE.Mesh(new THREE.SphereGeometry(0.205, 32, 20), glass));
   // visor-assembly shell wraps the back and sides only, leaving the front window for the visor
   put(head, new THREE.Mesh(new THREE.SphereGeometry(0.218, 32, 20, Math.PI / 2 + 1.05, Math.PI * 2 - 2.1, 0.15, Math.PI * 0.62), hard));
@@ -78,7 +82,7 @@ export function makeAstronaut(accent = 0xff8c4a) {
     put(boot, box(0.18, 0.045, 0.34, rubber), 0, -0.07, 0);
     put(boot, box(0.17, 0.06, 0.06, rubber), 0, -0.02, 0.15);                                    // toe cap
     // arm: shoulder bearing -> upper arm (band) -> elbow bearing -> forearm -> wrist ring -> glove
-    const sh = put(body, new THREE.Group(), 0.36 * side, 1.38, 0);
+    const sh = put(U, new THREE.Group(), 0.36 * side, 1.38, 0);
     put(sh, new THREE.Mesh(new THREE.SphereGeometry(0.115, 16, 12), hard));
     const sb = put(sh, ring(0.11, 0.022, metal), 0.04 * side, 0, 0); sb.rotation.set(0, 0, Math.PI / 2);
     put(sh, cap(0.082, 0.2, fabric), 0, -0.18, 0);
@@ -91,9 +95,19 @@ export function makeAstronaut(accent = 0xff8c4a) {
     put(glove, cyl(0.08, 0.07, 0.08, fabric2), 0, 0.04, 0);                                       // gauntlet
     put(glove, new THREE.Mesh(new THREE.SphereGeometry(0.068, 14, 10), M(0xd8d4cc, 0.85))).scale.set(0.95, 1.25, 0.75);
     put(glove, box(0.1, 0.07, 0.035, rubber), 0, -0.03, 0.035);                                  // palm grip
-    return { hip, knee, sh, el, boot };
+    return { hip, knee, sh, el, boot, glove };
   };
-  const L = limb(1), R = limb(-1);
+  const L = limb(1), R = limb(-1);   // L = the figure's left (+X), R = right
+
+  // ---- sampling tools (visible only while working at a science stop)
+  const hammer = put(R.glove, new THREE.Group(), 0, -0.02, 0.02);
+  put(hammer, cyl(0.014, 0.014, 0.42, M(0x3b3b3b, 0.5, 0.3), 8), 0, 0, 0.18).rotation.x = Math.PI / 2;
+  put(hammer, box(0.15, 0.045, 0.05, metal), 0, 0, 0.38);
+  const bag = put(L.glove, new THREE.Group(), 0, -0.16, 0.03);
+  put(bag, box(0.17, 0.22, 0.05, M(0xf4f2ec, 0.9)));
+  put(bag, box(0.17, 0.035, 0.055, stripe), 0, 0.09, 0);
+  put(bag, box(0.06, 0.04, 0.056, M(0x222222, 0.6)), 0, -0.02, 0);
+  hammer.visible = bag.visible = false;
 
   // all meshes cast shadows; a faint contact blob grounds the figure where the shadow map is coarse
   root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
@@ -110,23 +124,31 @@ export function makeAstronaut(accent = 0xff8c4a) {
       walkB += ((walking ? 1 : 0) - walkB) * k;
       work += ((working && !walking ? 1 : 0) - work) * k;
       if (walking) phase += dt * cadenceHz * Math.PI * 2;
-      else if (working) phase += dt * 1.2;
+      else if (working) phase += dt * 1.6;
       else phase += (Math.round(phase / Math.PI) * Math.PI - phase) * k; // settle feet together when standing
-      const s = Math.sin(phase), c = Math.cos(phase), w = walkB, wk = work;
-      // Mars-gravity gait in a pressurized suit: long, springy strides, stiff arms, hip sway
-      L.hip.rotation.x = s * 0.5 * w - 0.35 * wk;  R.hip.rotation.x = -s * 0.5 * w - 0.12 * wk;
-      L.knee.rotation.x = Math.max(0, -c) * 0.9 * w + 0.12 * w + 0.6 * wk; R.knee.rotation.x = Math.max(0, c) * 0.9 * w + 0.12 * w + 0.25 * wk;
-      L.boot.rotation.x = -Math.max(0, -c) * 0.35 * w - 0.25 * wk; R.boot.rotation.x = -Math.max(0, c) * 0.35 * w - 0.1 * wk; // keep soles level-ish
-      L.sh.rotation.x = -s * 0.32 * w - wk * (0.95 + 0.25 * Math.sin(phase * 2));
-      R.sh.rotation.x = s * 0.32 * w - wk * 0.4;
-      L.el.rotation.x = -0.45 * w - 0.2 - wk * (0.65 + 0.2 * Math.sin(phase * 2 + 1));
-      R.el.rotation.x = -0.45 * w - 0.2 - wk * 0.45;
+      const s = Math.sin(phase), c = Math.cos(phase), w = walkB;
+      const kneel = role === "sampler" ? work : 0, assist = role === "assistant" ? work : 0;
+      const tap = Math.max(0, Math.sin(phase * 3));            // hammer strikes
+      hammer.visible = kneel > 0.35; bag.visible = assist > 0.35;
+      // legs: walking stride, or kneel on the right knee with the left foot forward
+      L.hip.rotation.x = s * 0.5 * w - 1.45 * kneel - 0.05 * assist;
+      L.knee.rotation.x = (Math.max(0, -c) * 0.9 + 0.12) * w + 1.45 * kneel + 0.05 * assist;
+      L.boot.rotation.x = -Math.max(0, -c) * 0.35 * w;
+      R.hip.rotation.x = -s * 0.5 * w + 0.05 * kneel;
+      R.knee.rotation.x = (Math.max(0, c) * 0.9 + 0.12) * w + 1.5 * kneel;
+      R.boot.rotation.x = -Math.max(0, c) * 0.35 * w - 0.55 * kneel; // toes tucked under when kneeling
+      // arms: stiff suit swing while walking
+      L.sh.rotation.x = -s * 0.32 * w - kneel * 0.7 - assist * 0.6;          // left: rests on knee / holds the bag
+      L.el.rotation.x = -0.45 * w - 0.2 - kneel * 0.75 - assist * 1.05;
+      R.sh.rotation.x = s * 0.32 * w - kneel * (1.1 + 0.12 * tap) - assist * (0.25 + 0.12 * Math.sin(phase));
+      R.el.rotation.x = -0.45 * w - 0.2 - kneel * (0.25 + 0.3 * tap) - assist * 0.3;   // right: hammer / gesture
       L.sh.rotation.z = 0.16; R.sh.rotation.z = -0.16;   // the suit holds the arms away from the body
-      // bounce (two per stride, higher in low gravity), forward lean, side-to-side weight shift
-      body.position.y = Math.abs(s) * 0.07 * w - 0.14 * wk;
+      // body: bounce and sway while walking; drop onto the knee and lean forward to work
+      body.position.y = Math.abs(s) * 0.07 * w - 0.36 * kneel;
       body.position.x = s * 0.03 * w;
-      body.rotation.x = 0.1 * w + 0.15 * wk;
+      body.rotation.x = 0;
       body.rotation.z = -s * 0.04 * w;
+      upper.rotation.x = 0.1 * w + 0.42 * kneel + 0.08 * assist;
     },
   };
 }

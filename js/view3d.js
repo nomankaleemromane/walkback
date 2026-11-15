@@ -173,9 +173,13 @@ export async function create3D(el, S) {
     }
     S.targets.forEach((t, i) => {
       const k = S.cells[i]; if (k < 0) return;
-      const [x, z] = cellXZ(k), y = surfaceY(x, z), inPlan = p && p.order.includes(i + 1);
+      let [x, z] = cellXZ(k), y = surfaceY(x, z); const inPlan = p && p.order.includes(i + 1);
       const col = objCol[t.objective] || 0xffffff;
-      if (pv) { // astronaut view: a 2.5 m survey flag at the stop
+      if (pv) { // astronaut view: a 2.5 m survey flag just ahead of where the crew kneels
+        if (p && inPlan) { // move it 1.4 m along the walking direction at this stop
+          const sm = smooth(), q = p.profile.findIndex((r) => r[2] === k);
+          if (q >= 0) { x = sm.xs[q] + sm.tx[q] * 1.4; z = sm.zs[q] + sm.tz[q] * 1.4; y = surfaceY(x, z); }
+        }
         const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 2.5, 6), new THREE.MeshLambertMaterial({ color: 0xdddddd }));
         pole.position.set(x, y + 1.25, z); group.add(pole);
         const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.45), new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide, transparent: !inPlan, opacity: inPlan ? 1 : 0.5 }));
@@ -217,7 +221,7 @@ export async function create3D(el, S) {
   let playing = false, lastT = 0, yaw = null, camYaw = null, camMode = "follow", speed = 60;
   const stepAt = (p, t) => p.steps.find((s) => t >= s.t0 && t < s.t1) || p.steps[p.steps.length - 1];
   // the EVA pair (buddy rule): crew 1 orange band, crew 2 cyan band
-  const crew = [makeAstronaut(0xff8c4a), makeAstronaut(0x3dd9ff)];
+  const crew = [makeAstronaut(0xff8c4a, "sampler"), makeAstronaut(0x3dd9ff, "assistant")];
   crew.forEach((c) => { c.root.visible = false; scene.add(c.root); c.prev = null; c.yaw = null; });
   const BUDDY_LAG_S = 2, BUDDY_SIDE_M = 2.2; // buddy walks about 1 m behind and 2 m to the side, on the same path
 
@@ -277,10 +281,13 @@ export async function create3D(el, S) {
     a.station = stepAt(p, t).kind === "station";
     // buddy: same path, a few seconds behind, offset to the side of the path
     const Bt = t - BUDDY_LAG_S, B = posAt(Bt), buddyStation = Bt <= 0 || stepAt(p, Bt).kind !== "walk";
-    if (B.heading != null && !buddyStation) b.yaw = ease(b.yaw, B.heading, dtReal, 14);
-    if (b.yaw == null) b.yaw = B.heading ?? yaw;
-    const sx = Math.cos(b.yaw), sz = -Math.sin(b.yaw); // to the buddy's right
+    if (B.heading != null && !buddyStation) b.pathYaw = ease(b.pathYaw, B.heading, dtReal, 14);
+    if (b.pathYaw == null) b.pathYaw = B.heading ?? yaw;
+    const sx = Math.cos(b.pathYaw), sz = -Math.sin(b.pathYaw); // to the right of the path
     const bx = B.px + sx * BUDDY_SIDE_M, bz = B.pz + sz * BUDDY_SIDE_M;
+    // walking: face along the path; at a stop: turn to face the kneeling partner
+    const bWant = buddyStation && leadStation ? Math.atan2(A.px - bx, A.pz - bz) : b.pathYaw;
+    b.yaw = ease(b.yaw, bWant, dtReal, 6);
     b.root.position.set(bx, surfaceY(bx, bz), bz); b.root.rotation.y = b.yaw;
     b.station = Bt > 0 && stepAt(p, Bt).kind === "station";
     a.root.visible = camMode !== "eye"; b.root.visible = true;
