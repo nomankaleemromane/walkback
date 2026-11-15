@@ -45,7 +45,7 @@ Status: ✅ (7 kinds). All are in "Layered, integrated view"; the "kind" tag on 
 
 | Item | Status | Where |
 |---|---|---|
-| Real Perseverance images, credited | ✅ | 36 raw Mastcam-Z/Navcam/Hazcam frames from the sampling sols, cached; click a target |
+| Real Perseverance images, credited | ✅ | 39 raw Mastcam-Z/Navcam/Hazcam frames from the sampling sols, cached; click a target |
 | POV in 3D | ✅ | Astronaut view: 1.7 m eye height walking the route, with HUD |
 
 ## Current conditions and time frame
