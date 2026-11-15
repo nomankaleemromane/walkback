@@ -1,0 +1,5 @@
+raw/
+tests/
+scripts/
+*.py
+__pycache__/
