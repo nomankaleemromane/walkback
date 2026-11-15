@@ -14,7 +14,7 @@ Every click ("Do") and every line to say ("Say"), in order.
 
 | Do | Say |
 |---|---|
-| Nothing. The map with the route is on screen. | "On Mars, the most important question on a spacewalk is: *can we get home?* Help from Earth is 20 minutes away by radio, and since NASA lost its MAVEN orbiter this year, nothing at Mars warns astronauts of solar storms. Meet Walkback." |
+| Nothing. The map with the route is on screen. | "On Mars, the most important question on a spacewalk is: *can we get home?* Help from Earth is 20 minutes away by radio, and since NASA lost MAVEN, its solar-storm monitor at Mars, crews depend on storm forecasts made from Earth. Meet Walkback." |
 
 ## Part 2 · 0:20–0:50 · The plan
 
