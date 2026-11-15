@@ -3,3 +3,4 @@ tests/
 scripts/
 *.py
 __pycache__/
+SUBMISSION.html
